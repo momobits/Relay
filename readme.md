@@ -1,4 +1,12 @@
-# Relay
+```
+ ██████╗  ███████╗ ██╗       █████╗  ██╗   ██╗
+ ██╔══██╗ ██╔════╝ ██║      ██╔══██╗ ╚██╗ ██╔╝
+ ██████╔╝ █████╗   ██║      ███████║  ╚████╔╝
+ ██╔══██╗ ██╔══╝   ██║      ██╔══██║   ╚██╔╝
+ ██║  ██║ ███████╗ ███████╗ ██║  ██║    ██║
+ ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝    ╚═╝
+      persistent memory for AI workflows
+```
 
 A prompt-driven workflow system that gives AI coding agents persistent memory of what was built, what broke, and what's next. It replaces the ephemeral, conversation-scoped context that AI models operate in with a structured documentation system that survives across sessions, models, and teams.
 
@@ -32,33 +40,37 @@ Every AI session reads this documentation before acting. Every session writes ba
 Relay has four prompt categories, each handling a phase of the development lifecycle:
 
 ```
-PREPARE          DISCOVERY          FEATURE            CODE
-(status)         (find work)        (design work)      (do work)
+PREPARE          DISCOVERY          FEATURE              CODE
+(status)         (find work)        (design work)        (do work)
 
-prepare_1 -----> discovery_1        feature_1 -------> code_1  (analyze)
-  (scan)           (scan for          (brainstorm)        |
-    |               issues)              |             code_2  (plan)
-prepare_2        discovery_2        feature_2              |
-  (order)          (file item)        (design)         code_3  (review)
-                                                           |
-                                                       *implement*
-                                                           |
-                                                       code_4  (verify)
-                                                           |
-                                                       code_5  (notebook)
-                                                           |
-                                                       code_6  (resolve)
+prepare_1        discovery_1        feature_1            code_1  (analyze)
+  (scan)           (scan for          (brainstorm)          |
+    |               issues)              |               code_2  (plan)
+prepare_2        discovery_2        feature_2                |
+  (order)          (file item)        (design)           code_3  (review)
+                                         |                   |
+                                   feature_3_cleanup     *implement*
+                                     (archive stale          |
+                                      brainstorms)       code_4  (verify)
+                                                             |
+                                                         code_5  (notebook)
+                                                             |
+                                                         code_6  (resolve)
 ```
+
+The flow between categories: discovery/feature prompts create docs → prepare prompts prioritize them → code prompts implement them. Each prompt's Navigation section tells you what to run next.
 
 ### Workflow Paths
 
 There are three entry points depending on what you're doing:
 
 ```
-Issue found     -->  discovery_2  -->  code_1 --> code_2 --> code_3 --> implement --> code_4 --> code_5 --> code_6
-Feature idea    -->  feature_1   -->  feature_2  -->  code_1 --> code_2 --> code_3 --> implement --> code_4 --> code_5 --> code_6
-Small feature   -->  discovery_2  -->  code_1 --> code_2 --> code_3 --> implement --> code_4 --> code_5 --> code_6
+Specific issue  -->  discovery_2  -->  prepare_1 --> prepare_2 --> code_1 --> ... --> code_6
+Systematic scan -->  discovery_1  -->  prepare_1 --> prepare_2 --> code_1 --> ... --> code_6
+Feature idea    -->  feature_1   -->  feature_2  --> prepare_1 --> prepare_2 --> code_1 --> ... --> code_6
 ```
+
+Note: `code_5` (notebook) is optional — you can skip directly from `code_4` to `code_6`. Each prompt tells you the next step via its Navigation section.
 
 All paths converge on the same **code pipeline** for implementation, ensuring every change gets the same rigor regardless of how it was discovered.
 
@@ -71,7 +83,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | Prompt | Purpose |
 |--------|---------|
 | **[prepare_1_scan_and_status](prompts/prepare_1_scan_and_status.md)** | Scans all docs and codebase, produces `relay-status.md` with current state of every tracked item. Flags regressions in archived items. Maintains project-specific customizations as the codebase evolves. |
-| **[prepare_2_generate_ordering](prompts/prepare_2_generate_ordering.md)** | Reads relay-status.md and all outstanding items, analyzes dependencies (including intra-feature ordering from brainstorm files), produces `relay-ordering.md` with prioritized phases. |
+| **[prepare_2_generate_ordering](prompts/prepare_2_generate_ordering.md)** | Reads relay-status.md and all outstanding items, analyzes dependencies (using Development Order and Dependencies metadata from feature files), produces `relay-ordering.md` with prioritized phases. |
 
 ### Discovery — Finding and documenting work
 
@@ -85,7 +97,8 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | Prompt | Purpose |
 |--------|---------|
 | **[feature_1_brainstorm](prompts/feature_1_brainstorm.md)** | Interactive exploration of a feature idea. Asks clarifying questions, explores codebase constraints, presents approaches with trade-offs. Creates one brainstorm file that accumulates decisions and names the feature files to create. |
-| **[feature_2_design](prompts/feature_2_design.md)** | Takes the brainstorm (or a standalone feature file from discovery_2) and designs each feature in detail. Creates individual feature files with architecture, interfaces, data flow, and integration points. Each file links back to its brainstorm. |
+| **[feature_2_design](prompts/feature_2_design.md)** | Takes the brainstorm and designs each feature in detail. Creates individual feature files with architecture, interfaces, data flow, and integration points. Each file links back to its brainstorm. Sets brainstorm status to DESIGN COMPLETE. |
+| **[feature_3_cleanup](prompts/feature_3_cleanup.md)** | Archives abandoned brainstorm files that were never completed through feature_2_design. Checks brainstorm status and asks the user before archiving. |
 
 ### Code — Implementation pipeline
 
@@ -95,7 +108,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **[code_2_plan](prompts/code_2_plan.md)** | Creates atomic, independently-verifiable implementation steps. Each step specifies WHAT, HOW, WHY, RISK, VERIFY, ROLLBACK. Plan is appended to the item file and persisted across sessions. |
 | **[code_3_review](prompts/code_3_review.md)** | Adversarial review that tries to break the plan. Tests edge cases, checks for regressions, validates completeness. Produces a verdict: APPROVED, APPROVED WITH CHANGES, or REJECTED. |
 | **[code_4_verify](prompts/code_4_verify.md)** | Post-implementation check: diff vs plan, completeness, correctness, regression tests. Produces a Verification Report appended to the item file. |
-| **[code_5_notebook](prompts/code_5_notebook.md)** | Creates a Jupyter verification notebook, runs every cell, iterates until all pass. Classifies failures as notebook bugs, related project issues (fix inline), or unrelated issues (file via discovery_2). |
+| **[code_5_notebook](prompts/code_5_notebook.md)** | Checks for notebook dependencies (Part 0), creates a Jupyter verification notebook, runs every cell, iterates until all pass. Classifies failures as notebook bugs, related project issues (fix inline), or unrelated issues (file via discovery_2). Optional — can skip to code_6_resolve. |
 | **[code_6_resolve](prompts/code_6_resolve.md)** | Archives resolved items, creates implementation docs in `docs/implemented/`, updates brainstorm files, regenerates status. Works for both full-pipeline items and quick fixes. |
 
 ---
@@ -113,6 +126,7 @@ Run the setup prompt to create the directory structure and all prompt files:
 This creates:
 
 ```
+.venv/                                         # Python venv for notebook execution
 docs/
 ├── relay-readme.md                    # This file — Relay workflow documentation
 ├── relay-status.md                    # Generated — current state of all items
@@ -133,6 +147,7 @@ docs/
     ├── discovery_2_create_issue_or_feature.md  # Quick-file an item
     ├── feature_1_brainstorm.md        # Interactive brainstorm
     ├── feature_2_design.md            # Design feature files
+    ├── feature_3_cleanup.md           # Archive abandoned brainstorms
     ├── code_1_analyze.md              # Validate + blast radius
     ├── code_2_plan.md                 # Implementation plan
     ├── code_3_review.md               # Adversarial review
@@ -149,6 +164,7 @@ Setup Phase 2 scans your codebase and customizes Relay for your project:
 - **Test commands** (`code_4_verify.md`): Detects test frameworks, directory structure, and import patterns — generates project-specific regression check commands
 - **Notebook patterns** (`code_5_notebook.md`): Detects async patterns, connection teardown, logging flush timing — generates project-specific seed data, cleanup, and guidelines
 - **Scoping paths** (`discovery_1_discover_issues.md`): Detects module structure — updates scan path examples
+- **Python environment** (`.venv/`): Detects or creates a Python virtual environment and installs notebook execution dependencies (`nbclient`, `nbformat`, `nbconvert`). Required regardless of project language — notebooks can test any project via subprocess, HTTP, CLI, etc.
 
 The AI presents each customization for your confirmation. If you're unsure, accept the scan defaults — `prepare_1_scan_and_status` maintains these automatically as the project evolves.
 
@@ -473,68 +489,81 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 ## File Flow Diagram
 
 ```
-                    ┌──────────────┐
-                    │  Codebase    │
-                    └──────┬───────┘
-                           │ scan
-                    ┌──────▼───────┐       ┌──────────────────┐
-                    │ discovery_1  │──────>│  docs/issues/     │
-                    │ discovery_2  │──────>│  docs/features/   │
-                    └──────────────┘       └────────┬──────────┘
-                                                    │
-                    ┌──────────────┐                 │
-                    │  prepare_1   │<────────────────┤ read
-                    │  (scan)      │                 │
-                    └──────┬───────┘                 │
-                           │                         │
-                    ┌──────▼───────┐                 │
-                    │  prepare_2   │                 │
-                    │  (order)     │                 │
-                    └──────┬───────┘                 │
-                           │ produces                │
-                    ┌────────────────────────┐        │
-                    │  relay-ordering.md    │        │
-                    └──────┬───────────────┘        │
-                           │ pick phase              │
-                    ┌──────▼───────┐                 │
-                    │  code_1      │ reads all ──────┘
-                    │  (analyze)   │ reads archive/
-                    └──────┬───────┘ reads implemented/
-                           │
-                    ┌──────▼───────┐
-                    │  code_2      │──── appends plan ──────> issue/feature file
-                    │  (plan)      │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  code_3      │──── appends review ────> issue/feature file
-                    │  (review)    │
-                    └──────┬───────┘
-                           │ APPROVED
-                    ┌──────▼───────┐
-                    │  *implement* │──── writes code ───────> codebase
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  code_4      │──── appends verify ────> issue/feature file
-                    │  (verify)    │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  code_5      │──── creates ───────────> docs/notebooks/
-                    │  (notebook)  │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐     ┌────────────────────────┐
-                    │  code_6      │────>│ docs/implemented/      │
-                    │  (resolve)   │────>│ docs/archive/issues/   │
-                    └──────┬───────┘────>│ docs/archive/features/ │
-                           │        ────>│ docs/archive/notebooks/│
-                           │             └────────────────────────┘
-                    ┌─────────────────────────────┐
-                    │ relay-status.md (updated)   │
-                    │ relay-ordering.md (updated) │
-                    └─────────────────────────────┘
+                                        ┌──────────────┐
+                                        │  Codebase    │
+                                        └──────┬───────┘
+                                               │ scan
+                    ┌──────────────────────────▼────────────────────────────┐
+                    │                                                       │
+             ┌──────▼───────┐  ┌──────────────┐       ┌──────────────────┐ │
+             │ discovery_1  │  │ feature_1    │       │  docs/issues/    │ │
+             │ (scan issues)│  │ (brainstorm) │       │  docs/features/  │ │
+             └──────┬───────┘  └──────┬───────┘       └────────┬─────────┘ │
+                    │                 │                         │           │
+                    │          ┌──────▼───────┐                 │           │
+                    │          │ feature_2    │──── creates ────┘           │
+                    ├── creates │ (design)    │  feature files              │
+                    │    issues └──────────────┘                            │
+                    │                                                       │
+                    │  ┌──────────────┐                                     │
+                    │  │ discovery_2  │──── creates issue/feature ──────────┘
+                    │  │ (file item)  │
+                    │  └──────────────┘
+                    │
+                    ▼
+             ┌──────────────┐
+             │  prepare_1   │<──── reads docs/issues/ + docs/features/
+             │  (scan)      │
+             └──────┬───────┘
+                    │
+             ┌──────▼───────┐
+             │  prepare_2   │
+             │  (order)     │
+             └──────┬───────┘
+                    │ produces
+             ┌──────▼──────────────┐
+             │  relay-ordering.md  │
+             └──────┬──────────────┘
+                    │ pick phase
+             ┌──────▼───────┐
+             │  code_1      │──── reads all items, archives, implemented/
+             │  (analyze)   │
+             └──────┬───────┘
+                    │
+             ┌──────▼───────┐
+             │  code_2      │──── appends plan ──────> issue/feature file
+             │  (plan)      │
+             └──────┬───────┘
+                    │
+             ┌──────▼───────┐
+             │  code_3      │──── appends review ────> issue/feature file
+             │  (review)    │
+             └──────┬───────┘
+                    │ APPROVED
+             ┌──────▼───────┐
+             │  *implement* │──── writes code ───────> codebase
+             └──────┬───────┘
+                    │
+             ┌──────▼───────┐
+             │  code_4      │──── appends verify ────> issue/feature file
+             │  (verify)    │
+             └──────┬───────┘
+                    │ (optional)
+             ┌──────▼───────┐
+             │  code_5      │──── creates ───────────> docs/notebooks/
+             │  (notebook)  │
+             └──────┬───────┘
+                    │
+             ┌──────▼───────┐     ┌────────────────────────┐
+             │  code_6      │────>│ docs/implemented/      │
+             │  (resolve)   │────>│ docs/archive/issues/   │
+             └──────┬───────┘────>│ docs/archive/features/ │
+                    │        ────>│ docs/archive/notebooks/│
+                    │             └────────────────────────┘
+             ┌─────────────────────────────┐
+             │ relay-status.md (updated)   │
+             │ relay-ordering.md (updated) │
+             └─────────────────────────────┘
 ```
 
 ---
@@ -556,3 +585,7 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 **Status files are generated, not edited.** `relay-status.md` and `relay-ordering.md` are regenerated by the prepare prompts. This prevents drift between documentation and reality.
 
 **Project customizations are auto-maintained.** Edge cases, test commands, notebook patterns, and scan paths are detected during setup and kept current by `prepare_1` on every status scan. The workflow adapts as your project evolves without manual intervention.
+
+**Every prompt tells you what to do next.** Each prompt ends with a `## Navigation` section that explicitly tells the user which prompt to run next, including verdict-based routing (e.g., APPROVED → implement → verify, REJECTED → revise plan). No more guessing what `@file.md` to type.
+
+**All dates use YYYY-MM-DD format.** Every date placeholder in the workflow (`*Generated:*`, `*Reviewed:*`, `*Verified:*`, etc.) uses ISO 8601 format for consistency across item files.
