@@ -59,7 +59,9 @@ project evolves.
    frameworks, logging flush requirements, database commit timing, and
    test fixture conventions. Generate project-specific guidance for:
    - Seed data: what domain and test content patterns the project uses
-   - Cleanup cell: the correct teardown code for the project
+   - Cleanup cell: teardown code including deletion of test fixtures
+     (test users, namespaces, projects, etc.) created during setup, plus
+     connection cleanup and resource release
    - Guidelines: any project-specific timing, flush, or async patterns
      that notebook cells need to account for
    Present to the user for confirmation, then update code_5_notebook.md
@@ -101,6 +103,15 @@ project evolves.
       note to the user that nbclient/nbformat/nbconvert were installed
       into the venv for Relay's verification notebooks and ask if they
       want these added to the project's dev dependencies.
+
+## Navigation
+When setup is complete, tell the user:
+→ "Setup complete. Next steps:
+   1. Run **@discovery_1_discover_issues.md** to scan the codebase for issues
+   2. Run **@prepare_1_scan_and_status.md** to generate relay-status.md
+   3. Run **@prepare_2_generate_ordering.md** to prioritize the work
+   4. Run **@code_1_analyze.md** to start working on the highest-priority item
+   Or run **@feature_1_brainstorm.md** to explore a new feature idea."
 ```
 
 ---
@@ -241,6 +252,10 @@ When finished, tell the user:
   "Regressions detected — run **@discovery_2_create_issue_or_feature.md**
    to file new issues for them. Then run **@prepare_2_generate_ordering.md**
    to prioritize the work."
+→ If items are PARTIAL:
+  "Some items are partially addressed. Update their issue/feature files
+   to document what was already done and narrow the scope to what remains.
+   Then run **@prepare_2_generate_ordering.md** to prioritize."
 → Otherwise:
   "Next: run **@prepare_2_generate_ordering.md** to prioritize the work."
 ~~~
@@ -434,8 +449,8 @@ Context (if from another session):
 
 2. Determine if this is an issue (bug, shortcoming, gap) or a feature
    (new capability, enhancement). If it's a large feature that needs
-   design exploration, say so and recommend using feature_1_brainstorm
-   instead.
+   design exploration, STOP — do not create a file. Skip to the
+   Navigation section and direct the user to feature_1_brainstorm.
 
 3. Check the full docs landscape for existing coverage:
    - docs/issues/ — is this already tracked?
@@ -449,7 +464,9 @@ Context (if from another session):
 
 4. Write the analysis to:
    - docs/issues/[descriptive_name].md if it's an issue
-   - docs/features/[descriptive_name].md if it's a feature
+   - docs/features/[descriptive_name].md if it's a small, self-contained feature
+   - If step 2 determined this needs brainstorming, do NOT create a file —
+     skip to the Navigation section
 
 5. Include:
    - *Created: [YYYY-MM-DD]*
@@ -463,11 +480,11 @@ Context (if from another session):
 Output: New issue/feature doc in docs/issues/ or docs/features/
 
 ## Navigation
-When finished, tell the user the next step based on what was created:
-→ If a feature file was created and the topic needs design exploration:
-  "This is a larger feature. Run **@feature_1_brainstorm.md** to explore
-   and design it before implementation."
-→ Otherwise:
+When finished, tell the user the next step based on the outcome:
+→ If the topic needs design exploration (no file was created):
+  "This is a larger feature that needs brainstorming. Run
+   **@feature_1_brainstorm.md** to explore and design it."
+→ Otherwise (issue or small feature file was created):
   "Next: run **@prepare_1_scan_and_status.md** to update project status,
    then **@prepare_2_generate_ordering.md** to prioritize the work."
 ~~~
@@ -820,7 +837,10 @@ Before writing any code, analyze and validate:
    - Does the bug/gap/requirement still exist at the cited line numbers?
    - Has the code been refactored, moved, or partially addressed?
    - Are the proposed implementation steps still valid?
-   If the item is stale or partially resolved, say so and adjust.
+   If the item is stale, say so and recommend archiving or updating.
+   If the item is PARTIAL (some aspects already addressed outside the
+   pipeline): document what was already done, narrow the scope to what
+   remains, and proceed with analysis of the remaining work only.
 4. Root cause / requirements analysis — ask: are we addressing a symptom or the real problem?
    - Trace the problem upstream: what creates the bad state? (For features: what creates the need?)
    - Trace it downstream: what consumes the output? How will it change?
@@ -931,6 +951,10 @@ When finished, tell the user:
 
 ~~~
 Based on the analysis, create a detailed implementation plan.
+
+0. Read the target item file(s) and verify an ## Analysis section exists
+   (from code_1_analyze). If no analysis exists, STOP and tell the user:
+   "No analysis found in the item file. Run **@code_1_analyze.md** first."
 
 If an Adversarial Review section exists in the issue/feature file with
 verdict REJECTED (from a previous code_3_review), read it first and
@@ -1064,6 +1088,10 @@ When finished, tell the user:
 Review the implementation plan as an adversary. Your job is to find holes,
 not to confirm it's good.
 
+0. Read the target item file(s) and verify an ## Implementation Plan
+   section exists (from code_2_plan). If no plan exists, STOP and tell
+   the user: "No implementation plan found. Run **@code_2_plan.md** first."
+
 1. For each step in the plan, attempt to break it:
    - What happens if this step partially fails (e.g., first query succeeds,
      second throws)?
@@ -1153,7 +1181,10 @@ When finished, tell the user the next step based on the verdict:
 
 → If REJECTED:
   "The plan needs rework. Run **@code_2_plan.md** to revise the plan
-   incorporating the rejection feedback from the Adversarial Review."
+   incorporating the rejection feedback from the Adversarial Review.
+   If this is the second or subsequent rejection, consider whether the
+   approach itself is flawed — run **@code_1_analyze.md** to reconsider
+   the fundamental approach before re-planning."
 ~~~
 
 ## Notes
@@ -1161,7 +1192,7 @@ When finished, tell the user the next step based on the verdict:
 - This prompt intentionally has an adversarial framing — it produces better results than "please review"
 - The "re-read each target file NOW" instruction is critical: it catches drift between planning and review
 - Edge cases in the edge cases section should be specific to this project — update them as the codebase evolves
-- If the verdict is REJECTED, go back to `code_2_plan` with the feedback, not to `code_1_analyze`
+- If the verdict is REJECTED, go back to `code_2_plan` with the feedback. If repeated rejections indicate a fundamental approach problem, escalate to `code_1_analyze`
 - The plan is only finalized when this prompt returns APPROVED
 - When APPROVED WITH CHANGES, the issue/feature file's plan is updated in-place so there is always one source of truth
 - The review is persisted in the issue/feature file so the full lifecycle (problem/requirement → plan → review → verification) lives in one place
@@ -1182,6 +1213,11 @@ When finished, tell the user the next step based on the verdict:
 
 ~~~
 The implementation is complete. Verify it against the finalized plan.
+
+0. Read the target item file(s) and verify an ## Adversarial Review section
+   exists with verdict APPROVED or APPROVED WITH CHANGES (from code_3_review).
+   If no approved review exists, STOP and tell the user:
+   "No approved review found. Run **@code_3_review.md** first."
 
 1. Diff check — for each step in the plan:
    - Read the modified file and confirm the change matches the plan
@@ -1255,7 +1291,8 @@ The implementation is complete. Verify it against the finalized plan.
 When finished, tell the user the next step based on the verdict:
 → If COMPLETE:
   "Next: run **@code_5_notebook.md** to create and run the verification
-   notebook, or skip directly to **@code_6_resolve.md** to close out."
+   notebook." (The user may choose to skip to **@code_6_resolve.md** — do not
+   skip on their behalf.)
 → If INCOMPLETE or HAS ISSUES:
   "Issues were found and fixed. Say **'re-verify'** to re-run
    verification, or run **@code_4_verify.md** again."
@@ -1276,7 +1313,7 @@ When finished, tell the user the next step based on the verdict:
 ```markdown
 # Prompt: Code — Create & Validate Verification Notebook
 
-**When to use**: After `code_4_verify` confirms the implementation is complete and correct. This step is optional — you can skip directly to `code_6_resolve` if notebook validation is not needed. Creates a Jupyter notebook, runs every cell, and iterates until all cells pass. If project code issues are found, they are documented and fixed inline.
+**When to use**: After `code_4_verify` confirms the implementation is complete and correct. May be skipped ONLY if the user explicitly says so. Creates a Jupyter notebook, runs every cell, and iterates until all cells pass. If project code issues are found, they are documented and fixed inline.
 
 **Sequence**: `code_1_analyze` → `code_2_plan` → `code_3_review` → *implement* → `code_4_verify` → **`code_5_notebook`** → `code_6_resolve`
 
@@ -1287,6 +1324,15 @@ When finished, tell the user the next step based on the verdict:
 ~~~
 Create a verification notebook for each implemented and verified issue/feature
 file in this phase, then RUN every cell and iterate until all cells pass.
+
+## Prerequisites Check
+
+Before proceeding, read the target item file(s) and verify the **most
+recent** ## Verification Report section has verdict COMPLETE (from
+code_4_verify). Note: there may be multiple Verification Report sections
+if re-verification occurred — check the last one. If missing or the last
+verdict is not COMPLETE, STOP and tell the user:
+"No completed verification found. Run **@code_4_verify.md** first."
 
 ## Part 0 — Environment Check
 
@@ -1364,6 +1410,15 @@ For each issue/feature file in the phase:
              record(name, False, str(e))
      ```
 
+**CRITICAL — Integration, not simulation**: The notebook MUST exercise the
+   project's real code — import the actual modules, connect to real backends,
+   call the public API, and verify observable behavior end-to-end. Do NOT
+   reimplement or simulate the fixed logic locally in the notebook. If a
+   notebook can run without the project's dependencies (database, services,
+   etc.), it is a unit test duplicate, not a verification notebook. Unit tests
+   already cover isolated logic — this step validates the fix works in the
+   integrated system.
+
 3. SEED DATA: Ingest realistic test content that exercises the changed code path.
    Use the book domain with the project's standard fantasy test content
    (Elara, Aldric, Kael, etc.) unless the change requires different data.
@@ -1396,7 +1451,11 @@ For each issue/feature file in the phase:
    ```
 
 8. CLEANUP CELL:
+   - Delete any test fixtures created in the SETUP CELL (users, projects,
+     namespaces, test data) to prevent test artifacts from accumulating
+   - Close connections and release resources
    ```python
+   # [Delete test fixtures — project-specific cleanup from setup Phase 2]
    await m.close()
    print('Cleanup complete.')
    ```
@@ -1476,7 +1535,7 @@ if post-implementation fixes were needed
 
 ## Navigation
 When finished, tell the user:
-→ "Next: run **@code_6_resolve.md** to close out, archive, and regenerate status."
+→ "Next: run **@code_6_resolve.md** to close out and archive."
 ~~~
 
 ## Guidelines
@@ -1509,7 +1568,7 @@ When finished, tell the user:
 ```markdown
 # Prompt: Code — Resolve & Close
 
-**When to use**: After `code_5_notebook` (or `code_4_verify` if no notebook was needed). Also usable for quick fixes resolved outside the full pipeline — it adapts to whether a plan/verification exists.
+**When to use**: After `code_5_notebook` (or `code_4_verify` if the user explicitly skipped the notebook). Also usable for quick fixes resolved outside the full pipeline — it adapts to whether a plan/verification exists.
 
 **Sequence**: `code_1_analyze` → `code_2_plan` → `code_3_review` → *implement* → `code_4_verify` → `code_5_notebook` → **`code_6_resolve`**
 
@@ -1518,12 +1577,18 @@ When finished, tell the user:
 ## Prompt
 
 ~~~
-The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A"] is
-complete and verified. Close it out.
+The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A" or
+individual item "store_communities_n_plus_1"] is complete and verified.
+Close it out.
 
 1. Identify all issue/feature files that were resolved in this phase:
    - Read docs/relay-ordering.md to find which item files are in the
      specified phase/item
+   - If only some items in the phase were resolved, resolve only those
+     items. The remaining items stay in docs/issues/ or docs/features/
+     for the next ordering cycle. Specify individual items rather than
+     the whole phase (e.g., "store_communities_n_plus_1" instead of
+     "Phase 3B").
    - For each item file, read it and confirm it was addressed by the
      implementation:
      - If a plan and verification exist in the item file (from the code
@@ -1656,7 +1721,7 @@ docs/
 - **Systematic scan** → `discovery_1` (scan codebase) → `prepare_1` → `prepare_2` → `code_1` → ...
 - **Feature idea** → `feature_1` (brainstorm) → `feature_2` (design) → `prepare_1` → `prepare_2` → `code_1` → `code_2` → `code_3` → implement → `code_4` → `code_5` → `code_6`
 
-Note: `code_5` (notebook) is optional — you can skip directly from `code_4` to `code_6`. Each prompt tells you the next step via its Navigation section.
+Note: `code_5` (notebook) may be skipped only if the user explicitly says so. Each prompt tells you the next step via its Navigation section.
 
 ### Ongoing maintenance:
 

@@ -70,7 +70,7 @@ Systematic scan -->  discovery_1  -->  prepare_1 --> prepare_2 --> code_1 --> ..
 Feature idea    -->  feature_1   -->  feature_2  --> prepare_1 --> prepare_2 --> code_1 --> ... --> code_6
 ```
 
-Note: `code_5` (notebook) is optional — you can skip directly from `code_4` to `code_6`. Each prompt tells you the next step via its Navigation section.
+Note: `code_5` (notebook) may be skipped only if the user explicitly says so. Each prompt tells you the next step via its Navigation section.
 
 All paths converge on the same **code pipeline** for implementation, ensuring every change gets the same rigor regardless of how it was discovered.
 
@@ -90,7 +90,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | Prompt | Purpose |
 |--------|---------|
 | **[discovery_1_discover_issues](prompts/discovery_1_discover_issues.md)** | Systematic codebase scan for bugs, gaps, dead code, security issues, performance problems, test gaps. Creates issue files in `docs/issues/`. Checks archives to avoid re-reporting. |
-| **[discovery_2_create_issue_or_feature](prompts/discovery_2_create_issue_or_feature.md)** | Quick-file tool for a specific bug or small feature. Supports two modes: in-context (you're investigating) or cross-chat handoff (paste findings from another session). |
+| **[discovery_2_create_issue_or_feature](prompts/discovery_2_create_issue_or_feature.md)** | Quick-file tool for a specific bug or small feature. Redirects larger features to `feature_1_brainstorm` without creating a file. Supports two modes: in-context (you're investigating) or cross-chat handoff (paste findings from another session). |
 
 ### Feature — Designing new features
 
@@ -108,8 +108,8 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **[code_2_plan](prompts/code_2_plan.md)** | Creates atomic, independently-verifiable implementation steps. Each step specifies WHAT, HOW, WHY, RISK, VERIFY, ROLLBACK. Plan is appended to the item file and persisted across sessions. |
 | **[code_3_review](prompts/code_3_review.md)** | Adversarial review that tries to break the plan. Tests edge cases, checks for regressions, validates completeness. Produces a verdict: APPROVED, APPROVED WITH CHANGES, or REJECTED. |
 | **[code_4_verify](prompts/code_4_verify.md)** | Post-implementation check: diff vs plan, completeness, correctness, regression tests. Produces a Verification Report appended to the item file. |
-| **[code_5_notebook](prompts/code_5_notebook.md)** | Checks for notebook dependencies (Part 0), creates a Jupyter verification notebook, runs every cell, iterates until all pass. Classifies failures as notebook bugs, related project issues (fix inline), or unrelated issues (file via discovery_2). Optional — can skip to code_6_resolve. |
-| **[code_6_resolve](prompts/code_6_resolve.md)** | Archives resolved items, creates implementation docs in `docs/implemented/`, updates brainstorm files, regenerates status. Works for both full-pipeline items and quick fixes. |
+| **[code_5_notebook](prompts/code_5_notebook.md)** | Checks for notebook dependencies (Part 0), creates a Jupyter verification notebook that exercises the real project API end-to-end, runs every cell, iterates until all pass. Classifies failures as notebook bugs, related project issues (fix inline), or unrelated issues (file via discovery_2). May be skipped only if the user explicitly says so. |
+| **[code_6_resolve](prompts/code_6_resolve.md)** | Archives resolved items, creates implementation docs in `docs/implemented/`, updates brainstorm files. Works for both full-pipeline items and quick fixes. Run `prepare_1` and `prepare_2` afterwards to regenerate status. |
 
 ---
 
@@ -361,7 +361,8 @@ Run `@code_6_resolve.md`. The AI:
 1. Creates `docs/implemented/user_auth_token_expired_silently.md` with a summary of what was done
 2. Moves the issue to `docs/archive/issues/user_auth_token_expired_silently.md` with an ARCHIVED banner
 3. Moves the notebook to `docs/archive/notebooks/`
-4. Regenerates relay-status.md and relay-ordering.md
+
+Then run `@prepare_1_scan_and_status.md` and `@prepare_2_generate_ordering.md` to regenerate status and ordering.
 
 **The full lifecycle is now documented in one place** — the archived issue file contains the original problem, the plan, the review, and the verification report.
 
@@ -453,12 +454,20 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 │  Problem, impact, proposed fix, affected files      │
 │                                                     │
 │  ---                                                │
+│  ## Analysis                                        │  ← code_1_analyze
+│  Validation, root cause, blast radius, approach     │
+│                                                     │
+│  ---                                                │
 │  ## Implementation Plan                             │  ← code_2_plan
 │  Steps with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK       │
 │                                                     │
 │  ---                                                │
 │  ## Adversarial Review                              │  ← code_3_review
 │  Issues found, edge cases, regression risk, verdict │
+│                                                     │
+│  ---                                                │
+│  ## Implementation Guidelines                       │  ← code_3_review (APPROVED)
+│  Step-by-step execution rules, deviation logging    │
 │                                                     │
 │  ---                                                │
 │  ## Verification Report                             │  ← code_4_verify
@@ -560,10 +569,11 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
              └──────┬───────┘────>│ docs/archive/features/ │
                     │        ────>│ docs/archive/notebooks/│
                     │             └────────────────────────┘
-             ┌─────────────────────────────┐
-             │ relay-status.md (updated)   │
-             │ relay-ordering.md (updated) │
-             └─────────────────────────────┘
+                    │ then re-run
+             ┌──────▼───────┐
+             │  prepare_1   │──> relay-status.md (updated)
+             │  prepare_2   │──> relay-ordering.md (updated)
+             └──────────────┘
 ```
 
 ---
