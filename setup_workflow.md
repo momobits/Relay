@@ -201,7 +201,10 @@ Scan the project documentation and codebase to produce an updated docs/relay-sta
      with status DESIGNED) are tracked here.
 2. For each file, extract the distinct issues or features described
 3. Identify duplicates — same issue/feature described in multiple files
-   - If duplicated: consolidate into a single file, note the merge in relay-status.md
+   - If duplicated: consolidate into a single file. Turn the duplicate into
+     a redirect: replace its content with a link to the consolidated file
+     (e.g., `> **Merged into**: [consolidated_file.md](consolidated_file.md)`)
+     so code_6_resolve can archive both. Note the merge in relay-status.md.
 4. For each distinct item, scan the codebase to determine current status:
    - RESOLVED: the code fully addresses the issue or implements the feature
    - PARTIAL: some aspects addressed, others remain
@@ -225,17 +228,21 @@ Scan the project documentation and codebase to produce an updated docs/relay-sta
    - code_4_verify.md regression check section (test commands)
    - code_5_notebook.md seed data, cleanup cell, and Guidelines sections
    - discovery_1_discover_issues.md Scoping Variants (module paths)
-   If the project has added new integrations, changed its test framework,
-   or restructured its modules since these were last set, update them.
-   Only update silently if the change is unambiguous (e.g., a new package
-   appeared); if uncertain, note the potential update in relay-status.md for
-   the user to review.
+   If any customizations are stale, list the proposed updates in
+   relay-status.md under a "## Workflow Customization Updates" section
+   for the user to review. Do NOT modify prompt files directly — the user
+   must explicitly approve and apply these changes.
 
-Output: Updated docs/relay-status.md, optionally updated workflow customizations
+Output: Updated docs/relay-status.md
 
 ## Navigation
 When finished, tell the user:
-→ "Next: run **@prepare_2_generate_ordering.md** to prioritize the work."
+→ If regressions were flagged in this scan:
+  "Regressions detected — run **@discovery_2_create_issue_or_feature.md**
+   to file new issues for them. Then run **@prepare_2_generate_ordering.md**
+   to prioritize the work."
+→ Otherwise:
+  "Next: run **@prepare_2_generate_ordering.md** to prioritize the work."
 ~~~
 
 ## Notes
@@ -244,7 +251,8 @@ When finished, tell the user:
 - Items that are RESOLVED should eventually be closed using `code_6_resolve`
 - The scan should check actual code, not just documentation claims
 - Brainstorm files (`*_brainstorm.md`) are excluded — they are managed by the feature workflow (feature_1 → feature_2 → feature_3_cleanup) and are not actionable work items
-- If a previously archived item has regressed, flag it prominently and note that `discovery_2_create_issue_or_feature` should be used to create a new issue referencing the archive
+- If a previously archived item has regressed, flag it prominently — the Navigation section will direct the user to file new issues for regressions via `discovery_2_create_issue_or_feature`
+- Step 8 does NOT modify prompt files directly — it only proposes changes in relay-status.md for the user to review and apply
 ```
 
 ### docs/prompts/prepare_2_generate_ordering.md
@@ -340,7 +348,11 @@ new .md file in docs/issues/.
    - Error handling: swallowed exceptions, missing error paths, unhelpful messages
 4. For each distinct issue found:
    a. Check docs/issues/ — skip if already documented
-   b. Create docs/issues/[descriptive_name].md with:
+   b. Check docs/features/ — if a feature file with the same name or topic
+      exists, note the overlap and use a distinct filename that clarifies this
+      is an issue (e.g., prefix with the specific problem)
+   c. Create docs/issues/[descriptive_name].md with:
+      - *Created: [YYYY-MM-DD]*
       - Title and severity (P0 critical / P1 high / P2 medium / P3 low)
       - Problem statement: what's wrong and why it matters
       - Current state: exact file paths, line numbers, code snippets
@@ -440,6 +452,7 @@ Context (if from another session):
    - docs/features/[descriptive_name].md if it's a feature
 
 5. Include:
+   - *Created: [YYYY-MM-DD]*
    - Title and severity (P0 critical / P1 high / P2 medium / P3 low)
    - Problem statement: what's wrong or what's needed, and why it matters
    - Current state: exact file paths, line numbers, code snippets
@@ -450,8 +463,12 @@ Context (if from another session):
 Output: New issue/feature doc in docs/issues/ or docs/features/
 
 ## Navigation
-When finished, tell the user:
-→ "Next: run **@prepare_1_scan_and_status.md** to update project status,
+When finished, tell the user the next step based on what was created:
+→ If a feature file was created and the topic needs design exploration:
+  "This is a larger feature. Run **@feature_1_brainstorm.md** to explore
+   and design it before implementation."
+→ Otherwise:
+  "Next: run **@prepare_1_scan_and_status.md** to update project status,
    then **@prepare_2_generate_ordering.md** to prioritize the work."
 ~~~
 
@@ -551,10 +568,6 @@ Guide me through brainstorming this feature interactively.
      | 1 | `[name].md` | ...         | Build first     | None         |
      | 2 | `[name].md` | ...         | Build second    | Depends on 1 |
 
-     The following feature files should be created in `feature_2_design`:
-     1. `docs/features/[name].md` — [description]
-     2. `docs/features/[name].md` — [description]
-
      ## Development Order
      [Recommended order with rationale. This is advisory —
       prepare_2_generate_ordering makes the final project-wide call,
@@ -583,7 +596,7 @@ When brainstorming is complete, tell the user:
 - The brainstorm file is updated throughout the conversation as decisions are made, not dumped at the end
 - Always ask the user before creating or updating the file
 - Only ONE brainstorm file is created, even for multi-feature ideas — it accumulates all the areas/namespaces
-- The Feature Breakdown table is the handoff contract to `feature_2_design` — it names the files and describes what each one covers
+- The Feature Breakdown table is the handoff contract to `feature_2_design` — it names the files and describes what each one covers. `feature_2_design` will create the individual feature files listed in the table.
 - Suggested development order is recorded so `feature_2_design` and eventually `prepare_2_generate_ordering` can use it
 - If the idea is simple (one feature, obvious approach), this phase can be brief
 - If the idea is complex (architectural decisions, multiple features), this phase may take several rounds
@@ -638,8 +651,9 @@ to run **@feature_1_brainstorm.md** first.
         # Feature: [Title]
 
         *Created: [YYYY-MM-DD]*
-        *Brainstorm: [relative link to brainstorm file, e.g.,
-         ./[topic]_brainstorm.md]*
+        *Brainstorm: [link to brainstorm file — include both paths:
+         Active: docs/features/[topic]_brainstorm.md
+         Archived: docs/archive/features/[topic]_brainstorm.md]*
         *Status: DESIGNED*
 
         ## Summary
@@ -723,17 +737,19 @@ When finished, tell the user:
 ## Prompt
 
 ~~~
-Clean up abandoned brainstorm files in docs/features/.
+Clean up orphaned brainstorm files in docs/features/.
+
+This utility handles brainstorm files that were started but abandoned.
+Brainstorms with status DESIGN COMPLETE or COMPLETE are managed by the
+main workflow (code_6_resolve archives COMPLETE brainstorms automatically).
 
 1. Read every *_brainstorm.md file in docs/features/.
 
 2. For each brainstorm file, check its status:
-   - COMPLETE — all features from this brainstorm have been resolved.
-     Archive it (see step 3) with banner:
+   - COMPLETE — should already have been archived by code_6_resolve.
+     If found here, archive it (see step 3) with banner:
      > **ARCHIVED** — All features resolved.
-   - DESIGN COMPLETE — this brainstorm was fully processed by feature_2_design
-     but its features are still in progress. Leave it alone (it will reach
-     COMPLETE status when all features are resolved by code_6_resolve).
+   - DESIGN COMPLETE — features are still in progress. Leave it alone.
    - READY FOR DESIGN — this brainstorm is waiting for feature_2_design.
      Ask the user: "Brainstorm [filename] has status READY FOR DESIGN.
      Should I archive it, or leave it for feature_2_design?"
@@ -741,7 +757,7 @@ Clean up abandoned brainstorm files in docs/features/.
      Ask the user: "Brainstorm [filename] has status BRAINSTORMING
      (incomplete). Should I archive it?"
 
-3. For each brainstorm to be archived:
+3. For each brainstorm the user wants archived:
    - Move it from docs/features/[file].md to docs/archive/features/[file].md
    - Add the appropriate banner at the top based on status:
      - COMPLETE: `> **ARCHIVED** — All features resolved.`
@@ -762,8 +778,9 @@ When finished, tell the user:
 ## Notes
 
 - This is a utility prompt — run it when brainstorm files accumulate
-- Only brainstorm files with status DESIGN COMPLETE have been fully processed by feature_2_design; all others are candidates for cleanup
-- Always ask the user before archiving — brainstorms may be intentionally paused, not abandoned
+- COMPLETE brainstorms are normally archived by code_6_resolve — this prompt is a fallback if one was missed
+- DESIGN COMPLETE brainstorms are left alone — their features are in the code pipeline
+- Always ask the user before archiving BRAINSTORMING and READY FOR DESIGN files — they may be intentionally paused, not abandoned
 - If a brainstorm has associated feature files that were already created by feature_2_design, those feature files are independent and should NOT be archived just because the brainstorm is
 ```
 
@@ -849,6 +866,40 @@ Before writing any code, analyze and validate:
 
 Do NOT write code yet. Do NOT create a plan yet. Just analyze.
 
+7. Persist the analysis by APPENDING it to each relevant issue/feature file in
+   docs/issues/ or docs/features/. Add a horizontal rule separator, then
+   append the structured analysis:
+
+   ---
+
+   ## Analysis
+
+   *Analyzed: [YYYY-MM-DD]*
+
+   ### Validation
+   - Problem/requirement still exists: YES/NO (with current line numbers if shifted)
+   - Proposed approach still valid: YES/NO/NEEDS ADJUSTMENT
+
+   ### Root Cause
+   - What creates the bad state / what drives the requirement
+   - Whether this is a symptom of something deeper
+   - Related issues/features that share the same root cause or motivation
+
+   ### Blast Radius
+   - Files affected (with function names)
+   - Callers and consumers
+   - Test coverage status
+   - Config interactions
+   - Cross-item interactions (current docs/issues/ and docs/features/)
+   - Past work regression risk (docs/archive/ + docs/implemented/)
+
+   ### Approach
+   - Recommended approach (may differ from the issue/feature file's proposal)
+   - Alternatives considered and why they were rejected
+   - Open questions or decisions needed before implementation
+
+Output: Updated issue/feature file(s) in docs/issues/ or docs/features/ with analysis appended
+
 ## Navigation
 When finished, tell the user:
 → "Next: run **@code_2_plan.md** to create the implementation plan."
@@ -856,6 +907,7 @@ When finished, tell the user:
 
 ## Notes
 
+- The analysis is persisted in the issue/feature file so it survives across conversations and is available to code_2_plan
 - This prompt forces validation before planning — catching stale items and wrong approaches early
 - The "read all items" step is critical: it prevents changes that conflict with other known problems or planned features
 - Reading archive/ and implemented/ provides historical context — knowing what was already tried, what approaches worked, and what caveats were noted prevents repeating mistakes and protects past work from regression
@@ -928,9 +980,11 @@ Requirements for the plan:
    - Run multiple passes over the plan: does step 3 invalidate step 1?
      Does the final state match what you intended?
 
-7. Persist the plan by APPENDING it to each relevant issue/feature file in
-   docs/issues/ or docs/features/. Add a horizontal rule separator, then
-   append these sections:
+7. Persist the plan in each relevant issue/feature file in docs/issues/ or
+   docs/features/. If an Implementation Plan section already exists (from a
+   previous rejected plan), REPLACE it with the revised plan — do not append
+   a second copy. If no plan exists yet, APPEND after the Analysis section.
+   Add a horizontal rule separator, then these sections:
 
    ---
 
@@ -970,7 +1024,12 @@ Requirements for the plan:
    (e.g., "This plan depends on steps in [other_item.md](../issues/other_item.md)
    being completed first").
 
-Output: Updated issue/feature file(s) in docs/issues/ or docs/features/ with plan appended
+   If the plan spans multiple item files and was REJECTED, the Adversarial
+   Review will be in each affected file. Read the review from ALL affected
+   files and coordinate the revised plan across them — ensure cross-file
+   dependencies are addressed together.
+
+Output: Updated issue/feature file(s) in docs/issues/ or docs/features/ with plan persisted
 
 ## Navigation
 When finished, tell the user:
@@ -984,6 +1043,7 @@ When finished, tell the user:
 - "Stress-test every assumption" means re-reading the actual code, not relying on the issue/feature description
 - The plan should be detailed enough that someone unfamiliar with the codebase could execute it
 - If the analysis revealed related items that should be addressed together, the plan should include steps for all of them
+- On a revision cycle (after REJECTED), the plan replaces the previous version in-place — never two Implementation Plan sections in one file
 - If the plan is later revised (e.g., after `code_3_review` returns APPROVED WITH CHANGES), update the plan in the issue/feature file — don't append a second copy
 ```
 
@@ -1023,8 +1083,9 @@ not to confirm it's good.
    [Add project-specific edge cases here after initial setup]
 
 3. Check for regression in the wider project:
-   - Read docs/issues/ and docs/features/ again. Does the plan accidentally re-introduce any
-     previously resolved item from docs/implemented/ or docs/archive/?
+   - Read docs/issues/, docs/features/, docs/implemented/, docs/archive/issues/,
+     and docs/archive/features/. Does the plan accidentally re-introduce any
+     previously resolved item?
    - Does the plan change any behavior that other known items depend on?
      (e.g., if item X's proposed approach assumes the current behavior of the
      code this plan modifies)
@@ -1061,9 +1122,10 @@ not to confirm it's good.
    - APPROVED WITH CHANGES: plan needs specific modifications (list them)
    - REJECTED: plan has fundamental problems (explain, suggest alternative)
 
-   If APPROVED WITH CHANGES: update the Implementation Plan and Rollback
-   Plan sections above to incorporate the modifications. Do not append a
-   second plan — replace the existing plan sections with the revised version.
+   If APPROVED WITH CHANGES: update ALL plan sections above to incorporate
+   the modifications — Implementation Plan, Test Changes, Post-Implementation
+   Checks, Risks & Mitigations, and Rollback Plan. Do not append a second
+   plan — replace the existing plan sections with the revised version.
    This becomes the implementation spec.
 
 ## Navigation
@@ -1073,12 +1135,20 @@ When finished, tell the user the next step based on the verdict:
    Say **'implement the plan'** to begin coding.
    After implementation is complete, run **@code_4_verify.md** to verify."
 
-  When implementing, follow these guidelines:
+  Before implementing, APPEND the following to the issue/feature file
+  after the Adversarial Review section:
+
+  ---
+
+  ## Implementation Guidelines
+
+  *Date: [YYYY-MM-DD]*
+
   - Follow the finalized plan step by step, in order
   - After each step, run its VERIFY command before moving to the next
   - Commit after each logically complete step or group of related steps
   - If a step cannot be implemented as planned, document the deviation
-    and the reason in the issue/feature file before proceeding
+    and the reason in this file before proceeding
   - Do NOT make changes beyond what the plan specifies
 
 → If REJECTED:
@@ -1176,9 +1246,10 @@ The implementation is complete. Verify it against the finalized plan.
    - HAS ISSUES: [list problems that need fixing]
 
    If INCOMPLETE or HAS ISSUES, fix the problems, update the Verification
-   Fixes section above with what was done, then re-run this verification
-   to update the verdict. The issue/feature file should always reflect the final
-   state.
+   Fixes section above with what was done, then re-run this verification.
+   On re-verification, APPEND a new Verification Report section (do not
+   replace the previous one — the history of verification passes is
+   valuable). The issue/feature file should always reflect the final state.
 
 ## Navigation
 When finished, tell the user the next step based on the verdict:
@@ -1205,7 +1276,7 @@ When finished, tell the user the next step based on the verdict:
 ```markdown
 # Prompt: Code — Create & Validate Verification Notebook
 
-**When to use**: After `code_4_verify` confirms the implementation is complete and correct. This creates a Jupyter notebook, runs every cell, and iterates until all cells pass. If project code issues are found, they are documented and fixed inline.
+**When to use**: After `code_4_verify` confirms the implementation is complete and correct. This step is optional — you can skip directly to `code_6_resolve` if notebook validation is not needed. Creates a Jupyter notebook, runs every cell, and iterates until all cells pass. If project code issues are found, they are documented and fixed inline.
 
 **Sequence**: `code_1_analyze` → `code_2_plan` → `code_3_review` → *implement* → `code_4_verify` → **`code_5_notebook`** → `code_6_resolve`
 
@@ -1257,10 +1328,11 @@ For each issue/feature file in the phase:
    - Title: `# [Item Title]: Verification`
    - Brief description of what was changed and what this notebook tests
    - Table of what changed (before/after, or list of changes)
-   - Reference to the item file:
+   - Reference to the item file (use repo-root-relative paths so links
+     work both before and after the notebook is archived):
      ```
-     **Item file**: [docs/issues/FILENAME.md](../issues/FILENAME.md) or [docs/features/FILENAME.md](../features/FILENAME.md)
-     (after resolution: [docs/archive/issues/FILENAME.md](../archive/issues/FILENAME.md) or [docs/archive/features/FILENAME.md](../archive/features/FILENAME.md))
+     **Item file**: [docs/issues/FILENAME.md](docs/issues/FILENAME.md) or [docs/features/FILENAME.md](docs/features/FILENAME.md)
+     (after resolution: [docs/archive/issues/FILENAME.md](docs/archive/issues/FILENAME.md) or [docs/archive/features/FILENAME.md](docs/archive/features/FILENAME.md))
      ```
    - Prerequisites (database, env vars, install steps)
 
@@ -1282,7 +1354,12 @@ For each issue/feature file in the phase:
          """Wrapper that catches exceptions and records them as failures."""
          try:
              result = (await fn()) if asyncio.iscoroutinefunction(fn) else fn()
-             record(name, result if isinstance(result, bool) else True)
+             if isinstance(result, bool):
+                 record(name, result)
+             elif result is None:
+                 record(name, True)  # No return = completed without error
+             else:
+                 record(name, bool(result), f'returned falsy: {result!r}' if not result else '')
          except Exception as e:
              record(name, False, str(e))
      ```
@@ -1345,9 +1422,8 @@ that errors or produces a FAIL:
    c) PROJECT CODE ISSUE — UNRELATED to the current change. A pre-existing
       bug that the notebook happened to expose.
       → Flag this to the user. Do NOT fix it inline.
-      → Create a new issue file using
-        docs/prompts/discovery_2_create_issue_or_feature.md.
-        Provide the notebook context:
+      → Invoke **@discovery_2_create_issue_or_feature.md** to create a new
+        issue file. Provide the notebook context:
         - Currently working on: [item file being verified]
         - Notebook: [notebook file]
         - Failing cell: [cell description]
@@ -1442,8 +1518,8 @@ When finished, tell the user:
 ## Prompt
 
 ~~~
-The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A"] is complete
-and verified. Close it out.
+The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A"] is
+complete and verified. Close it out.
 
 1. Identify all issue/feature files that were resolved in this phase:
    - Read docs/relay-ordering.md to find which item files are in the
@@ -1460,7 +1536,11 @@ and verified. Close it out.
    - Filename: same as the item file (e.g., `delete_entity_not_atomic.md`
      → implemented doc `delete_entity_not_atomic.md`)
    - Content:
+
      ## Summary
+
+     *Resolved: [YYYY-MM-DD]*
+
      - What was the problem or goal (1-2 sentences)
      - How it was resolved (approach taken)
 
@@ -1476,37 +1556,44 @@ and verified. Close it out.
      ## Caveats
      - Any follow-up items, edge cases deferred, or related issues/features affected
 
-3. Archive each resolved item and its notebook:
-   - Move item from docs/issues/[file].md (or docs/features/[file].md) to docs/archive/issues/[file].md (or docs/archive/features/[file].md)
+   - For feature files: update the feature file's `*Status:*` line from
+     `DESIGNED` to `IMPLEMENTED` before archiving.
+
+3. If a resolved feature was part of a brainstorm, update the brainstorm
+   file BEFORE archiving:
+   - To find the parent brainstorm: check the `*Brainstorm:*` metadata line
+     in the feature file for the relative link to the brainstorm file.
+   - Mark the feature as complete in the Feature Breakdown table.
+   - If ALL features in the brainstorm are now resolved (check the table —
+     all rows marked complete, and no unarchived sibling feature files remain
+     in docs/features/), set the brainstorm's status to COMPLETE and archive
+     the brainstorm:
+     - Move it from docs/features/ to docs/archive/features/
+     - Add banner: `> **ARCHIVED** — All features resolved.`
+
+4. Archive each resolved item and its notebook:
+   - Move item from docs/issues/[file].md (or docs/features/[file].md) to
+     docs/archive/issues/[file].md (or docs/archive/features/[file].md)
    - Add banner at the top of the archived file:
      > **ARCHIVED** — Resolved. See [implementation doc](../../implemented/FILENAME.md)
    - If a matching notebook exists in docs/notebooks/[file].ipynb, move it
      to docs/archive/notebooks/[file].ipynb
 
-4. If a resolved feature was part of a brainstorm (*_brainstorm.md in
-   docs/features/), update the brainstorm file:
-   - Mark the feature as complete in the Feature Breakdown table
-   - If ALL features in the brainstorm are now resolved, set the
-     brainstorm's status to COMPLETE
-
-5. Check if ANY remaining items in docs/issues/ or docs/features/ were partially addressed
-   or affected by this change:
+5. Check if ANY remaining items in docs/issues/ or docs/features/ were
+   partially addressed or affected by this change:
    - If an item was partially addressed, update it to reflect the new state
    - If an item's proposed approach needs adjustment because of this change,
      update it
 
-6. Regenerate status files:
-   - Run the process from docs/prompts/prepare_1_scan_and_status.md
-   - Run the process from docs/prompts/prepare_2_generate_ordering.md
-
-Output: Implementation docs in docs/implemented/, archived items, updated
-relay-status.md and relay-ordering.md
+Output: Implementation docs in docs/implemented/, archived items and
+brainstorms
 
 ## Navigation
 When finished, tell the user:
 → "This phase is complete. You should commit these changes before continuing.
-   To continue working, pick the next phase from relay-ordering.md and
-   run **@code_1_analyze.md**.
+   Run **@prepare_1_scan_and_status.md** to update the project status, then
+   **@prepare_2_generate_ordering.md** to reprioritize.
+   Then pick the next phase from relay-ordering.md and run **@code_1_analyze.md**.
    Or run **@discovery_1_discover_issues.md** to scan for new issues."
 ~~~
 
