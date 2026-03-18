@@ -19,14 +19,21 @@ verdict is not COMPLETE, STOP and tell the user:
 Before creating the notebook, verify the notebook execution dependencies
 are available:
 
-1. Check if `nbclient`, `nbformat`, and `nbconvert` are importable:
+1. Determine the correct Python command for this platform:
+   - If a virtual environment exists (`.venv/`, `venv/`): use its Python
+     directly (e.g., `.venv/Scripts/python` on Windows, `.venv/bin/python`
+     on Linux/macOS)
+   - Otherwise: try `python3` first, fall back to `python`
+   Use whichever works for ALL subsequent Python/pip commands in this skill.
+
+   Check if `nbclient`, `nbformat`, and `nbconvert` are importable:
    ```
-   python3 -c "import nbclient, nbformat, nbconvert"
+   <python> -c "import nbclient, nbformat, nbconvert"
    ```
    Also check that IPython 7+ is available (required for top-level
    `await` directly in notebook cells):
    ```
-   python3 -c "import IPython; v=tuple(int(x) for x in IPython.__version__.split('.')[:2]); assert v>=(7,0), f'IPython 7+ required for top-level await, found {IPython.__version__}'"
+   <python> -c "import IPython; v=tuple(int(x) for x in IPython.__version__.split('.')[:2]); assert v>=(7,0), f'IPython 7+ required for top-level await, found {IPython.__version__}'"
    ```
    If the IPython check fails, upgrade before proceeding:
    `pip install --upgrade ipython ipykernel`
@@ -37,12 +44,12 @@ are available:
    a. Look for an existing virtual environment (`.venv/`, `venv/`, or
       check if already running inside one via `sys.prefix != sys.base_prefix`).
    b. If a venv exists: activate it and run
-      `pip install nbclient nbformat nbconvert`, then proceed to Part A.
+      `pip install nbclient nbformat nbconvert ipython ipykernel`, then proceed to Part A.
    c. If no venv exists but Python 3 is available: ask the user before
       installing globally: "No virtual environment found. Install
-      nbclient/nbformat/nbconvert into the system Python? (Or create a
-      venv first with `python3 -m venv .venv`)"
-      If the user approves, run `pip install nbclient nbformat nbconvert`,
+      notebook dependencies into the system Python? (Or create a
+      venv first with `<python> -m venv .venv`)"
+      If the user approves, run `pip install nbclient nbformat nbconvert ipython ipykernel`,
       then proceed to Part A.
    d. If Python 3 is not available: tell the user
       "Python 3 is required for verification notebooks. Install Python 3
@@ -61,12 +68,17 @@ For each issue/feature file in the phase:
    - Title: `# [Item Title]: Verification`
    - Brief description of what was changed and what this notebook tests
    - Table of what changed (before/after, or list of changes)
-   - Reference to the item file (use repo-root-relative paths so links
-     work both before and after the notebook is archived):
+   - Reference to the item file using **relative paths from the notebook's
+     directory** (NOT project-root paths). Because `.relay/` mirrors its own
+     structure under `.relay/archive/`, the relative path `../issues/` or
+     `../features/` works both before and after archival:
      ```
-     **Item file**: [.relay/issues/FILENAME.md](.relay/issues/FILENAME.md) or [.relay/features/FILENAME.md](.relay/features/FILENAME.md)
-     (after resolution: [.relay/archive/issues/FILENAME.md](.relay/archive/issues/FILENAME.md) or [.relay/archive/features/FILENAME.md](.relay/archive/features/FILENAME.md))
+     **Item file**: [FILENAME.md](../issues/FILENAME.md) or [FILENAME.md](../features/FILENAME.md)
      ```
+     Explanation: notebooks live in `.relay/notebooks/`, so `../issues/`
+     resolves to `.relay/issues/`. After archival, notebooks are in
+     `.relay/archive/notebooks/`, so `../issues/` resolves to
+     `.relay/archive/issues/`. Same relative path, correct in both locations.
    - Prerequisites (database, env vars, install steps)
 
 2. SETUP CELL:
@@ -184,8 +196,7 @@ that errors or produces a FAIL:
         - Error: [the actual error]
       → In the notebook, mark the cell with a comment:
         ```python
-        # KNOWN ISSUE: see .relay/issues/[new_issue_name].md
-        # (after resolution: .relay/archive/issues/[new_issue_name].md)
+        # KNOWN ISSUE: see ../issues/[new_issue_name].md
         ```
       → Continue to the next cell.
 
@@ -255,7 +266,7 @@ When finished, tell the user:
 
 - Notebooks live in `.relay/notebooks/`, NOT in the project root `notebooks/` directory
 - Notebook filename matches the issue/feature filename (`.md` → `.ipynb`) for traceability
-- The header cell includes both the active and archived path so the link works before and after resolution
+- The header cell uses relative paths (`../issues/` or `../features/`) so links work both before archival (from `.relay/notebooks/`) and after (from `.relay/archive/notebooks/`) without any path updates needed
 - When /relay-resolve archives the item, it also archives the notebook to `.relay/archive/notebooks/`
 - Every notebook should be self-contained: create its own fixtures, don't depend on other notebooks
 - If a phase has multiple item files, create one notebook per item file (not one giant notebook)

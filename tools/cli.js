@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "2.0.0";
+const VERSION = "2.0.1";
 const SKILLS_DIR = ".claude/skills";
 
 const RELAY_SKILLS = [

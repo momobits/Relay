@@ -271,13 +271,15 @@ resolved phase). The skills /relay-review, /relay-verify, and
 
 5. **Python environment for verification notebooks**:
    Verification notebooks (/relay-notebook) require Python 3 and
-   the packages `nbclient`, `nbformat`, and `nbconvert` to execute.
-   Set these up now so notebooks work when you reach the code pipeline:
+   the packages `nbclient`, `nbformat`, `nbconvert`, `ipython`, and
+   `ipykernel` to execute. Set these up now so notebooks work when
+   you reach the code pipeline:
 
    a. Check if Python 3 is available.
    b. Check for an existing virtual environment.
-   c. Install notebook dependencies.
-   d. Confirm the install succeeded.
+   c. Install all notebook dependencies:
+      `pip install nbclient nbformat nbconvert ipython ipykernel`
+   d. Confirm the install succeeded (import all five packages).
    e. Ask if the user wants these added to the project's dev dependencies.
 
 ## Navigation

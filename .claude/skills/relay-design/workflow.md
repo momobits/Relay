@@ -39,9 +39,7 @@ to run **/relay-brainstorm** first.
         # Feature: [Title]
 
         *Created: [YYYY-MM-DD]*
-        *Brainstorm: [link to brainstorm file — include both paths:
-         Active: .relay/features/[topic]_brainstorm.md
-         Archived: .relay/archive/features/[topic]_brainstorm.md]*
+        *Brainstorm: [[topic]_brainstorm.md]([topic]_brainstorm.md)*
         *Status: DESIGNED*
 
         ## Summary

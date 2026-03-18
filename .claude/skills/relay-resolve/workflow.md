@@ -59,9 +59,11 @@ Close it out.
      - [list of files changed, with brief description of each change]
 
      ## Verification
-     - Link to verification notebook (if created), include both paths:
-       - Active: `.relay/notebooks/[file].ipynb`
-       - Archived: `.relay/archive/notebooks/[file].ipynb`
+     - Link to verification notebook (if created) using relative path:
+       `[notebook](../notebooks/[file].ipynb)` (before archival)
+       or `[notebook](../archive/notebooks/[file].ipynb)` (after archival)
+       Since implementation docs never move, use the archived path as the
+       permanent link: `[notebook](../archive/notebooks/[file].ipynb)`
      - Test commands that confirm the change
 
      ## Caveats
