@@ -48,7 +48,7 @@ Every AI session reads this documentation before acting. Every session writes ba
 ```bash
 # Install with npx (recommended)
 cd your-project
-npx relay-workflow install
+npx relay-workflow@latest install
 ```
 
 Or install manually:
