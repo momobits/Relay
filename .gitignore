@@ -1,0 +1,14 @@
+node_modules/
+.venv/
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
+.env
+.env.local
+
+# Claude Code local settings (personal session permissions)
+.claude/settings.local.json
+
+# Relay data directory (project-specific — created by /relay-setup)
+.relay/

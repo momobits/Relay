@@ -1,0 +1,43 @@
+{
+  "name": "relay-workflow",
+  "version": "2.0.0",
+  "description": "Persistent memory for AI coding workflows — Claude Code skills that give agents memory of what was built, what broke, and what's next",
+  "main": "tools/cli.js",
+  "bin": {
+    "relay-workflow": "tools/cli.js"
+  },
+  "scripts": {
+    "postinstall": "echo 'Run: npx relay-workflow install'"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai-workflow",
+    "ai-memory",
+    "coding-agent",
+    "skills",
+    "persistent-memory",
+    "issue-tracking",
+    "code-review",
+    "verification"
+  ],
+  "author": "Momo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/momobits/Relay.git"
+  },
+  "homepage": "https://github.com/momobits/Relay",
+  "bugs": {
+    "url": "https://github.com/momobits/Relay/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "tools/cli.js",
+    ".claude/skills/relay-*/**/*",
+    "README.md",
+    "LICENSE"
+  ]
+}

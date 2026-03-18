@@ -1,0 +1,42 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify package version matches release tag
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: package.json version ($PACKAGE_VERSION) does not match release tag ($TAG_VERSION)"
+            echo "Update package.json version before creating the release."
+            exit 1
+          fi
+
+      - name: Verify skills exist
+        run: |
+          SKILL_COUNT=$(ls -d .claude/skills/relay-*/ | wc -l)
+          echo "Found $SKILL_COUNT relay skills"
+          if [ "$SKILL_COUNT" -ne 15 ]; then
+            echo "Error: Expected 15 relay skills, found $SKILL_COUNT"
+            exit 1
+          fi
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

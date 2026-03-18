@@ -1,0 +1,135 @@
+# Relay: Code — Resolve & Close
+
+**Sequence**: `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → **`/relay-resolve`**
+
+The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A" or
+individual item "store_communities_n_plus_1"] is complete and verified.
+Close it out.
+
+0. Prerequisite check: Read the target item file(s) and verify
+   resolution readiness:
+   - If the full code pipeline was used: verify the most recent
+     ## Verification Report has verdict COMPLETE. A notebook in
+     .relay/notebooks/ matching this item is supplementary evidence
+     but does NOT substitute for a COMPLETE verification verdict.
+   - If the item was determined stale by /relay-analyze: verify the
+     ## Analysis section documents the staleness finding.
+   - If prerequisites are missing, WARN the user:
+     "This item does not appear fully verified. Run
+     **/relay-verify** (or **/relay-notebook**) first, or
+     confirm you want to resolve it as-is."
+     Wait for the user to confirm before proceeding.
+
+1. Identify all issue/feature files that were resolved in this phase:
+   - Read .relay/relay-ordering.md to find which item files are in the
+     specified phase/item
+   - If only some items in the phase were resolved, resolve only those
+     items. The remaining items stay in .relay/issues/ or .relay/features/
+     for the next ordering cycle. Specify individual items rather than
+     the whole phase (e.g., "store_communities_n_plus_1" instead of
+     "Phase 3B").
+   - For each item file, read it and confirm it was addressed by the
+     implementation:
+     - If a plan and verification exist in the item file (from the code
+       pipeline), cross-reference with the finalized plan and verification.
+     - If no plan/verification sections exist (resolved outside the
+       pipeline), scan the codebase directly to confirm the resolution —
+       identify the files changed and how the item was addressed.
+     - If the item was determined to be stale during /relay-analyze
+       (the bug/gap never existed or was already fixed before this item
+       was worked): do NOT create an implementation doc. Instead,
+       archive the item directly to .relay/archive/issues/ (or
+       .relay/archive/features/) with the banner:
+       > **ARCHIVED** — Closed as stale. [Reason]. No code changes made.
+       Skip steps 2-3 for this item (no implementation doc needed).
+
+2. For each resolved item (skip stale items — they were archived in step 1), create an implementation doc in .relay/implemented/:
+   - Filename: same as the item file (e.g., `delete_entity_not_atomic.md`
+     → implemented doc `delete_entity_not_atomic.md`)
+   - Content:
+
+     ## Summary
+
+     *Resolved: [YYYY-MM-DD]*
+
+     - What was the problem or goal (1-2 sentences)
+     - How it was resolved (approach taken)
+
+     ## Files Modified
+     - [list of files changed, with brief description of each change]
+
+     ## Verification
+     - Link to verification notebook (if created), include both paths:
+       - Active: `.relay/notebooks/[file].ipynb`
+       - Archived: `.relay/archive/notebooks/[file].ipynb`
+     - Test commands that confirm the change
+
+     ## Caveats
+     - Any follow-up items, edge cases deferred, or related issues/features affected
+
+   - For feature files: update the feature file's `*Status:*` line from
+     `DESIGNED` to `IMPLEMENTED` before archiving.
+
+3. If a resolved feature was part of a brainstorm, update the brainstorm
+   file BEFORE archiving:
+   - To find the parent brainstorm: check the `*Brainstorm:*` metadata line
+     in the feature file for the relative link to the brainstorm file.
+   - Mark the feature as complete in the Feature Breakdown table.
+   - If ALL features in the brainstorm are now resolved (check the table —
+     all rows marked complete, and no unarchived sibling feature files remain
+     in .relay/features/), set the brainstorm's status to COMPLETE and archive
+     the brainstorm:
+     - Move it from .relay/features/ to .relay/archive/features/
+     - Add banner: `> **ARCHIVED** — All features resolved.`
+
+4. Archive each resolved item and its notebook:
+   - Move item from .relay/issues/[file].md (or .relay/features/[file].md) to
+     .relay/archive/issues/[file].md (or .relay/archive/features/[file].md)
+   - Add banner at the top of the archived file:
+     > **ARCHIVED** — Resolved. See [implementation doc](../../implemented/FILENAME.md)
+   - Note: if this item later regresses, do NOT unarchive it. Instead,
+     run **/relay-new-issue** to file a new issue that references this
+     archived file. The /relay-scan regression detection step surfaces
+     these cases automatically.
+   - If a matching notebook exists in .relay/notebooks/[file].ipynb, move it
+     to .relay/archive/notebooks/[file].ipynb
+
+5. Check if ANY remaining items in .relay/issues/ or .relay/features/ were
+   partially addressed or affected by this change:
+   - If an item was partially addressed, update it to reflect the new state
+   - If an item's proposed approach needs adjustment because of this change,
+     update it
+
+6. Refresh .relay/relay-config.md:
+   Since the project code has changed, check if relay-config.md is still
+   accurate. For each section:
+   - **Edge Cases**: scan the files modified in this phase. If any new
+     optional services, config options, concurrency patterns, or external
+     API call sites were added or changed, update the Edge Cases section.
+   - **Test Commands**: verify the test paths and commands still work.
+     If new test files were added or directories restructured, update.
+   - **Notebook Setup**: if imports, fixture patterns, or async behavior
+     changed, update the relevant subsection.
+   Only update sections where the changes in this phase actually affect
+   them — do not re-scan the entire codebase.
+
+7. Update .relay/relay-ordering.md:
+   For each resolved item, find it in relay-ordering.md and strike it
+   through (wrap in ~~...~~). Add a link to the implementation doc.
+   If all items in a phase are now resolved, mark the phase heading
+   with "— COMPLETE" and add a **Resolved** date line below the heading.
+   Do NOT remove the phase or its items — the history provides context.
+
+Output: Implementation docs in .relay/implemented/, archived items and
+brainstorms
+
+## Navigation
+When finished, tell the user:
+- "This phase is complete. You should commit these changes before continuing. Run **/relay-scan** to update the project status, then **/relay-order** to reprioritize. Then pick the next phase from relay-ordering.md and run **/relay-analyze**. Or run **/relay-discover** to scan for new issues."
+
+## Notes
+
+- This skill uses the same phase/item reference as /relay-analyze, so you can say "Phase 1A" consistently
+- If the phase contained multiple item files, they are all resolved and archived in one pass
+- Step 5 is important: resolving one item often changes the context for others — their proposed approaches may need updating
+- This skill works for both full-pipeline items (with plan/review/verification) and items resolved outside the pipeline — step 1 adapts based on what exists in the item file

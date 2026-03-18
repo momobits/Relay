@@ -1,0 +1,11 @@
+# Only include what's needed for the npm package
+# (package.json "files" field handles inclusion — this excludes the rest)
+.relay/
+.git/
+.github/
+.venv/
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
+.env
