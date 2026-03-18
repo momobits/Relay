@@ -29,14 +29,14 @@ Create this file to track the installed Relay version:
 
 | Field | Value |
 |-------|-------|
-| **Version** | 2.0.0 |
+| **Version** | 2.0.2 |
 | **Installed** | [YYYY-MM-DD] |
 | **Source** | https://github.com/momobits/Relay |
 | **Format** | skills |
 
 ## Changelog
 
-### 2.0.0 — Skills-based workflow
+### 2.0.2 — Skills-based workflow
 - Converted 14 prompts to Claude Code skills plus new `/relay-help` navigation skill (15 total)
 - Added `/relay-help` navigation skill
 - Skills are auto-discovered — no more `@file.md` references
@@ -275,12 +275,21 @@ resolved phase). The skills /relay-review, /relay-verify, and
    `ipykernel` to execute. Set these up now so notebooks work when
    you reach the code pipeline:
 
-   a. Check if Python 3 is available.
-   b. Check for an existing virtual environment.
-   c. Install all notebook dependencies:
-      `pip install nbclient nbformat nbconvert ipython ipykernel`
-   d. Confirm the install succeeded (import all five packages).
-   e. Ask if the user wants these added to the project's dev dependencies.
+   a. Determine the correct Python command for this platform:
+      - If a virtual environment exists (`.venv/`, `venv/`): use its
+        Python directly (e.g., `.venv/Scripts/python` on Windows,
+        `.venv/bin/python` on Linux/macOS)
+      - Otherwise: try `python3` first, fall back to `python`
+      Use whichever works for ALL subsequent Python/pip commands.
+   b. Check if Python 3 is available using the resolved command.
+   c. Check for an existing virtual environment.
+   d. Install all notebook dependencies:
+      `<python> -m pip install nbclient nbformat nbconvert ipython ipykernel`
+   e. Register the venv as a Jupyter kernel (skip if no venv):
+      `<python> -m ipykernel install --user --name=<project> --display-name="<project> (.venv)"`
+      Where `<project>` is the project directory name.
+   f. Confirm the install succeeded (import all five packages).
+   g. Ask if the user wants these added to the project's dev dependencies.
 
 ## Navigation
 When setup is complete, tell the user:

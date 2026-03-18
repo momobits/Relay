@@ -36,20 +36,34 @@ are available:
    <python> -c "import IPython; v=tuple(int(x) for x in IPython.__version__.split('.')[:2]); assert v>=(7,0), f'IPython 7+ required for top-level await, found {IPython.__version__}'"
    ```
    If the IPython check fails, upgrade before proceeding:
-   `pip install --upgrade ipython ipykernel`
+   `<python> -m pip install --upgrade ipython ipykernel`
 
-2. If all checks pass, proceed to Part A.
+2. Register the virtual environment as a Jupyter kernel so notebooks
+   can find it (both for programmatic execution and IDE use):
+   ```
+   <python> -m ipykernel install --user --name=<project> --display-name="<project> (.venv)"
+   ```
+   Where `<project>` is the project directory name (basename of the
+   working directory, e.g., `mnemos2`, `my-app`). If no venv exists
+   (system Python), skip this step — the default `python3` kernel works.
 
-3. If they are NOT available:
+   Verify the kernel is registered:
+   ```
+   <python> -m jupyter kernelspec list
+   ```
+
+3. If all checks pass (deps importable + kernel registered), proceed to Part A.
+
+4. If deps are NOT available:
    a. Look for an existing virtual environment (`.venv/`, `venv/`, or
       check if already running inside one via `sys.prefix != sys.base_prefix`).
    b. If a venv exists: activate it and run
-      `pip install nbclient nbformat nbconvert ipython ipykernel`, then proceed to Part A.
+      `<python> -m pip install nbclient nbformat nbconvert ipython ipykernel`, then proceed to Part A.
    c. If no venv exists but Python 3 is available: ask the user before
       installing globally: "No virtual environment found. Install
       notebook dependencies into the system Python? (Or create a
       venv first with `<python> -m venv .venv`)"
-      If the user approves, run `pip install nbclient nbformat nbconvert ipython ipykernel`,
+      If the user approves, run `<python> -m pip install nbclient nbformat nbconvert ipython ipykernel`,
       then proceed to Part A.
    d. If Python 3 is not available: tell the user
       "Python 3 is required for verification notebooks. Install Python 3
@@ -61,6 +75,19 @@ Location: .relay/notebooks/
 Naming: Use the SAME name as the issue/feature file, but with .ipynb
 extension instead of .md.
   e.g., `delete_entity_not_atomic.md` → `delete_entity_not_atomic.ipynb`
+
+Kernel metadata: Set the notebook's `kernelspec` to the kernel registered
+in Part 0 step 2. In the notebook JSON metadata:
+```json
+"kernelspec": {
+  "name": "<project>",
+  "display_name": "<project> (.venv)",
+  "language": "python"
+}
+```
+If no venv was registered (system Python), use `"name": "python3"` instead.
+This ensures both programmatic execution and IDE opening use the correct
+Python environment.
 
 For each issue/feature file in the phase:
 
@@ -168,6 +195,15 @@ For each issue/feature file in the phase:
      use it as the basis for this cell's teardown code.
 
 ## Part B — Run, Validate, and Iterate
+
+**Execution method**: Execute the notebook **in-place** so cell outputs are
+persisted in the source `.ipynb` file. Use one of these approaches:
+- **Preferred**: `<python> -m jupyter nbconvert --to notebook --execute --inplace <notebook>.ipynb`
+- **Alternative**: Use `nbclient` programmatically — load with `nbformat.read()`,
+  execute with `nbclient.NotebookClient(...).execute()`, write back with
+  `nbformat.write()` to the **same file path**.
+- **NEVER** use `--output-dir` pointing to a temp directory — this discards
+  outputs from the source notebook.
 
 After creating the notebook, execute every cell sequentially. For each cell
 that errors or produces a FAIL:
