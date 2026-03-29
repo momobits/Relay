@@ -51,7 +51,30 @@ not to confirm it's good.
    *Reviewed: [YYYY-MM-DD]*
 
    ### Issues Found
-   - [numbered list of problems, each with severity and suggested fix]
+
+   For each issue, include:
+   - Severity (CRITICAL / HIGH / MEDIUM / LOW)
+   - What's wrong and why it matters
+   - **If it's a code issue**, show the problematic code from the plan
+     and the corrected version, with inline comments:
+
+     **Plan has:**
+     ```python
+     result = self.process(data)  # ← no error handling; returns None on timeout
+     ```
+
+     **Should be:**
+     ```python
+     result = self.process(data)
+     if result is None:           # ← catch timeout / parse failure
+         self._emit_call(success=False, error_message="process returned None")
+         return []                # ← safe fallback, matches existing contract
+     ```
+
+   - **If it's an architectural issue**, explain the structural problem
+     and the correction with enough detail to understand without opening
+     files — e.g., which component talks to which, what the data flow
+     should be, what dependency is missing or circular.
 
    ### Edge Cases to Handle
    - [cases the plan needs to address]
@@ -62,6 +85,8 @@ not to confirm it's good.
    ### Verdict
    - APPROVED: plan is ready for implementation
    - APPROVED WITH CHANGES: plan needs specific modifications (list them)
+   - DEFERRED: item should be moved to a later phase (specify which phase
+     and why — e.g., dependency not yet resolved, prerequisite work needed)
    - REJECTED: plan has fundamental problems (explain, suggest alternative)
 
    If APPROVED WITH CHANGES: update ALL plan sections above to incorporate
@@ -102,7 +127,17 @@ When finished, tell the user the next step based on the verdict:
   - Do NOT make changes beyond what the plan specifies
 
 - If APPROVED WITH CHANGES (after updating the plan in-place):
-  Present a summary of the specific changes made to the plan.
+  Present a concrete summary of every change made to the plan.
+  For each change:
+  - **If code changed**: show the before (what the plan originally had)
+    and after (what it now says), with inline `# ←` comments explaining
+    what changed and why. The reader should understand the revision
+    without re-reading the full plan.
+  - **If architectural or structural**: explain what was reorganized,
+    what component/flow/dependency changed, and why the new structure
+    is better — with enough detail to evaluate without opening files.
+  - **If a step was added, removed, or reordered**: state which step
+    and why, with the code or design detail for any new/modified steps.
   Ask: "The plan has been updated with the changes above. Does this
   look right before implementation begins?"
   Wait for the user to confirm or request further adjustments. Once
@@ -131,6 +166,24 @@ When finished, tell the user the next step based on the verdict:
     - **Reason**: [why the deviation was necessary]
   - Do NOT make changes beyond what the plan specifies
 
+- If DEFERRED:
+  Update `.relay/relay-ordering.md` to reflect the deferral:
+  1. In the item's current phase table, strike through the item's row
+     content and append a deferral note pointing to the new location:
+     `| ~~ID~~ | ~~[title](link)~~ | ~~file~~ | ~~complexity~~ | **Deferred to Phase [N]** (see [N.X]) — [reason] |`
+  2. Add the item as a new row in the target phase table (create a new
+     sub-phase if needed, e.g., "6C — Deferred from 3B")
+  3. Update the "Estimated effort" lines for both the source and target
+     phases to reflect the change
+  4. Update the Summary table: adjust item counts for both phases
+
+  Then tell the user:
+  "Item **[title]** has been deferred from **Phase [source]** to
+   **Phase [N]** in relay-ordering.md.
+   Reason: [reason from verdict].
+   Continuing with the next item in the current phase, or run
+   **/relay-analyze** to pick the next item from relay-ordering.md."
+
 - If REJECTED:
   "The plan needs rework. Run **/relay-plan** to revise the plan
    incorporating the rejection feedback from the Adversarial Review.
@@ -146,17 +199,20 @@ When finished, tell the user the next step based on the verdict:
   and its reasoning are preserved in the item file for audit.
 
 - If reviewing a multi-item phase with split verdicts (some items
-  APPROVED, some REJECTED):
-  Items with no dependencies on rejected items may proceed to
+  APPROVED, some REJECTED or DEFERRED):
+  Items with no dependencies on rejected/deferred items may proceed to
   implementation independently. Rejected items return to /relay-plan.
-  If cross-dependencies exist between approved and rejected items,
-  all dependent items must be re-planned together.
+  Deferred items are moved in relay-ordering.md per the DEFERRED
+  instructions above. If cross-dependencies exist between approved
+  and rejected/deferred items, all dependent items must be re-planned
+  together.
 
 ## Notes
 
 - This skill intentionally has an adversarial framing — it produces better results than "please review"
 - The "re-read each target file NOW" instruction is critical: it catches drift between planning and review
 - Edge cases in the edge cases section should be specific to this project — update them as the codebase evolves
+- If the verdict is DEFERRED, update relay-ordering.md immediately — strike through in the source phase, add to the target phase — so the ordering file stays current
 - If the verdict is REJECTED, go back to /relay-plan with the feedback. If repeated rejections indicate a fundamental approach problem, escalate to /relay-analyze
 - The plan is only finalized when this skill returns APPROVED, or when the user confirms an APPROVED WITH CHANGES revision
 - When APPROVED WITH CHANGES, the issue/feature file's plan is updated in-place so there is always one source of truth

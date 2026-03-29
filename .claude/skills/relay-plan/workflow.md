@@ -31,7 +31,16 @@ Requirements for the plan:
 
 2. For each step, specify:
    - WHAT: exact file, function, and line range to change
-   - HOW: the specific code change (pseudocode or actual code)
+   - CODE (BEFORE): the actual current code from the file, copied verbatim.
+     Add a brief inline comment (# ← ...) on the key lines to explain what
+     they do and where the problem is. The reader should understand the
+     current behavior without opening the file.
+   - CODE (AFTER): the proposed replacement code, also with inline comments
+     explaining what each changed/added line does and why. Unchanged lines
+     can be included for context without comments.
+     This is NOT pseudocode — write the real code you intend to implement.
+     The before/after pair should be diffable: same surrounding context,
+     only the relevant lines changed.
    - WHY: what this step accomplishes and how it connects to the root cause / requirement
    - RISK: what could go wrong, what regression could this introduce
    - VERIFY: how to confirm this step worked (test command, manual check, etc.)
@@ -75,9 +84,24 @@ Requirements for the plan:
    *Generated: [YYYY-MM-DD]*
 
    ### Step 1: [title]
-   **File**: path/to/file.py
-   **Change**: [description]
-   **Code**: [specific change]
+   **File**: path/to/file.py (function_name, lines X–Y)
+
+   **Before** (current code):
+   ```python
+   def example(self, data):
+       result = self.process(data)        # ← processes input but ignores errors
+       return result                      # ← returns None on failure, caller doesn't check
+   ```
+
+   **After** (proposed change):
+   ```python
+   def example(self, data):
+       result = self.process(data)        # ← same processing call
+       if result is None:                 # ← NEW: catch the failure case
+           raise ProcessingError(data)    # ← NEW: surface error instead of silent None
+       return result
+   ```
+
    **Why**: [what this step accomplishes and how it connects to the root cause]
    **Risk**: [what could break]
    **Verify**: [how to check]
@@ -128,6 +152,7 @@ When finished, tell the user:
 - The step-by-step decomposition is key: it allows incremental implementation with verification at each stage
 - "Stress-test every assumption" means re-reading the actual code, not relying on the issue/feature description
 - The plan should be detailed enough that someone unfamiliar with the codebase could execute it
+- Before/After code blocks are NOT optional — they are the core of each step. The reader should be able to understand the entire change by reading the code blocks alone, without opening any source files. Use real code, not pseudocode. Add inline comments (# ← ...) on key lines to explain what they do
 - If the analysis revealed related items that should be addressed together, the plan should include steps for all of them
 - On a revision cycle (after REJECTED), the plan replaces the previous version in-place — never two Implementation Plan sections in one file
 - If the plan is later revised (e.g., after /relay-review returns APPROVED WITH CHANGES), update the plan in the issue/feature file — don't append a second copy

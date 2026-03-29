@@ -41,7 +41,20 @@ Before writing any code, analyze and validate:
      .relay/archive/features/, and .relay/implemented/)? If so, did the previous
      work regress, or is this a different manifestation of the same
      underlying problem?
-5. Blast radius mapping — for every proposed change, identify:
+5. User impact analysis — step outside the code and ask: what does this
+   actually mean for the person using the system?
+   - What does the user/operator experience because of this bug or gap?
+     (e.g., silent data corruption, misleading reports, missing warnings)
+   - What's the worst-case outcome if this goes unaddressed?
+   - Think of 1–2 concrete scenarios: a realistic situation where the problem
+     fires, told as a short narrative with specific data (names, numbers,
+     actions). These make the problem tangible.
+   - Describe the before/after: what happens today (broken) vs. what will
+     happen after the fix (correct), from the user's point of view.
+   This is NOT optional. The technical root cause alone does not communicate
+   the problem. If you can't explain the impact in plain terms, you don't
+   fully understand the issue yet.
+6. Blast radius mapping — for every proposed change, identify:
    - Direct callers (who calls this function/method?)
    - Indirect consumers (who uses the output downstream?)
    - Test coverage (which tests exercise this path? which don't?)
@@ -51,12 +64,12 @@ Before writing any code, analyze and validate:
    - Past work at risk (does this change touch code that was modified by a
      previous change in .relay/implemented/? Could it undo or destabilize
      that work?)
-6. Produce a structured analysis covering: validation, root cause,
-   blast radius, and approach. See step 7 for the exact format to persist.
+7. Produce a structured analysis covering: validation, root cause, user impact,
+   blast radius, and approach. See step 8 for the exact format to persist.
 
 Do NOT write code yet. Do NOT create a plan yet. Just analyze.
 
-7. Persist the analysis by APPENDING it to each relevant issue/feature file in
+8. Persist the analysis by APPENDING it to each relevant issue/feature file in
    .relay/issues/ or .relay/features/. Add a horizontal rule separator, then
    append the structured analysis:
 
@@ -74,6 +87,26 @@ Do NOT write code yet. Do NOT create a plan yet. Just analyze.
    - What creates the bad state / what drives the requirement
    - Whether this is a symptom of something deeper
    - Related issues/features that share the same root cause or motivation
+
+   ### What This Means (User Impact)
+
+   **In plain terms:** 1–2 sentences explaining what the user/operator
+   experiences because of this problem. No code references — write it as if
+   explaining to someone who uses the system but doesn't read the source.
+
+   **Scenario:** A concrete example using realistic data. Walk through what
+   happens step by step — what the user does, what the system does wrong,
+   and what the user sees (or doesn't see). Give names, numbers, and actions
+   so the reader can picture it.
+
+   **Before (current behavior):**
+   - Step-by-step of what happens today, ending with the bad outcome
+
+   **After (with fix):**
+   - Same scenario, same steps, but showing the corrected behavior and outcome
+
+   (For multiple items in a phase, write a separate Scenario + Before/After
+   for each item.)
 
    ### Blast Radius
    - Files affected (with function names)
