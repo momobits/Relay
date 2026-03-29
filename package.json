@@ -1,6 +1,6 @@
 {
   "name": "relay-workflow",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Persistent memory for AI coding workflows — Claude Code skills that give agents memory of what was built, what broke, and what's next",
   "main": "tools/cli.js",
   "bin": {
