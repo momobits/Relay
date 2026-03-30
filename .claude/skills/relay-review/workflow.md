@@ -56,7 +56,8 @@ not to confirm it's good.
    - Severity (CRITICAL / HIGH / MEDIUM / LOW)
    - What's wrong and why it matters
    - **If it's a code issue**, show the problematic code from the plan
-     and the corrected version, with inline comments:
+     and the corrected version, with an inline comment (# ← ...) on
+     EVERY line explaining what it does:
 
      **Plan has:**
      ```python
@@ -65,10 +66,10 @@ not to confirm it's good.
 
      **Should be:**
      ```python
-     result = self.process(data)
-     if result is None:           # ← catch timeout / parse failure
-         self._emit_call(success=False, error_message="process returned None")
-         return []                # ← safe fallback, matches existing contract
+     result = self.process(data)  # ← same call, unchanged
+     if result is None:           # ← NEW: catch timeout / parse failure
+         self._emit_call(success=False, error_message="process returned None")  # ← NEW: log the failure
+         return []                # ← NEW: safe fallback, matches existing contract
      ```
 
    - **If it's an architectural issue**, explain the structural problem
@@ -95,10 +96,31 @@ not to confirm it's good.
    plan — replace the existing plan sections with the revised version.
    This becomes the implementation spec.
 
+6. Present the review to the user BEFORE announcing the verdict.
+   Do NOT skip to the summary table. The user must see the substance of
+   what you checked, not just the outcome. For each item reviewed, show:
+
+   - **Source verification**: quote the actual current code you read from
+     each target file alongside the plan's BEFORE block. If they match, say
+     so with the code shown. If they differ, show both and flag the drift.
+   - **Issues found**: if any, show them with the "Plan has:" / "Should be:"
+     code blocks as described in step 5. If none, say "No issues found" but
+     still show what you checked (the key code paths, the edge cases tested).
+   - **Edge cases tested**: list the specific edge cases you evaluated and
+     the result for each. Include the input/scenario and what the plan
+     produces — don't just say "tested boundary conditions."
+   - **Regression check**: name the specific resolved items and test files
+     you checked. If a test would break, show the test code and explain why.
+
+   The user should be able to evaluate your review without opening any files.
+   If your presentation is just a table + prose summary, you have NOT
+   followed this step. Show the code. Show the evidence.
+
 ## Navigation
 When finished, tell the user the next step based on the verdict:
 
 - If APPROVED:
+  After presenting the full review details from step 6 above, conclude with:
   "The plan is approved and ready for implementation.
    Say **'implement the plan'** to begin coding.
    After implementation is complete, run **/relay-verify** to verify."
@@ -130,8 +152,8 @@ When finished, tell the user the next step based on the verdict:
   Present a concrete summary of every change made to the plan.
   For each change:
   - **If code changed**: show the before (what the plan originally had)
-    and after (what it now says), with inline `# ←` comments explaining
-    what changed and why. The reader should understand the revision
+    and after (what it now says), with an inline `# ←` comment on EVERY
+    line explaining what it does. The reader should understand the revision
     without re-reading the full plan.
   - **If architectural or structural**: explain what was reorganized,
     what component/flow/dependency changed, and why the new structure

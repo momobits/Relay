@@ -29,7 +29,7 @@ Create this file to track the installed Relay version:
 
 | Field | Value |
 |-------|-------|
-| **Version** | 2.0.4 |
+| **Version** | 2.0.5 |
 | **Installed** | [YYYY-MM-DD] |
 | **Source** | https://github.com/momobits/Relay |
 | **Format** | skills |

@@ -123,11 +123,34 @@ Do NOT write code yet. Do NOT create a plan yet. Just analyze.
 
 Output: Updated issue/feature file(s) in .relay/issues/ or .relay/features/ with analysis appended
 
+9. Present the analysis to the user BEFORE stating the next step.
+   Do NOT skip to "run /relay-plan". The user must see the substance of
+   your analysis, not just that you did one. For each item analyzed, show:
+
+   - **Validation**: what you found when you read the current source — quote
+     the relevant code and confirm/deny the problem still exists. If line
+     numbers shifted, show the new location.
+   - **Root cause**: explain what creates the bad state, with code references
+     the user can follow. If related items share the root cause, name them.
+   - **User impact**: the scenarios and before/after you wrote in step 5.
+     Present them in full — the user should understand the real-world
+     consequence without opening the issue file. This is the most important
+     part of the analysis for the user.
+   - **Blast radius**: the files, callers, consumers, and past work at risk.
+     Name specific functions and test files, not just file paths.
+   - **Approach**: your recommendation and why alternatives were rejected.
+
+   The user should be able to evaluate your analysis without opening any
+   files. If your presentation is just "analysis complete, run /relay-plan",
+   you have NOT followed this step. Show the scenarios. Show the code.
+   Show the before/after.
+
 ## Navigation
 When finished, tell the user the next step based on the outcome:
 - If the item is stale (the bug/gap no longer exists in the code, was already addressed outside the pipeline, or the requirement is no longer valid):
   "This item is stale. Run **/relay-resolve** to archive it as a stale close-out. Then run **/relay-scan** to refresh project status."
 - Otherwise:
+  After presenting the full analysis details from step 9 above, conclude with:
   "Next: run **/relay-plan** to create the implementation plan."
 
 ## Notes

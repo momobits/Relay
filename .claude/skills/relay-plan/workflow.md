@@ -32,12 +32,13 @@ Requirements for the plan:
 2. For each step, specify:
    - WHAT: exact file, function, and line range to change
    - CODE (BEFORE): the actual current code from the file, copied verbatim.
-     Add a brief inline comment (# ← ...) on the key lines to explain what
-     they do and where the problem is. The reader should understand the
-     current behavior without opening the file.
-   - CODE (AFTER): the proposed replacement code, also with inline comments
-     explaining what each changed/added line does and why. Unchanged lines
-     can be included for context without comments.
+     Add an inline comment (# ← ...) on EVERY line explaining what it does
+     and, where relevant, where the problem is. The reader should understand
+     the current behavior without opening the file.
+   - CODE (AFTER): the proposed replacement code, also with an inline comment
+     on EVERY line explaining what it does and why. For changed/added lines,
+     explain what changed and why. For unchanged lines, explain their role
+     in the surrounding context.
      This is NOT pseudocode — write the real code you intend to implement.
      The before/after pair should be diffable: same surrounding context,
      only the relevant lines changed.
@@ -88,18 +89,18 @@ Requirements for the plan:
 
    **Before** (current code):
    ```python
-   def example(self, data):
+   def example(self, data):              # ← entry point, takes raw input
        result = self.process(data)        # ← processes input but ignores errors
        return result                      # ← returns None on failure, caller doesn't check
    ```
 
    **After** (proposed change):
    ```python
-   def example(self, data):
+   def example(self, data):              # ← entry point, unchanged
        result = self.process(data)        # ← same processing call
        if result is None:                 # ← NEW: catch the failure case
            raise ProcessingError(data)    # ← NEW: surface error instead of silent None
-       return result
+       return result                      # ← unchanged: returns valid result
    ```
 
    **Why**: [what this step accomplishes and how it connects to the root cause]
@@ -142,8 +143,26 @@ Requirements for the plan:
 
 Output: Updated issue/feature file(s) in .relay/issues/ or .relay/features/ with plan persisted
 
+8. Present the plan to the user BEFORE stating the next step.
+   Do NOT skip to "run /relay-review". The user must see the full plan,
+   not just that you wrote one. For each step, show:
+
+   - **The Before/After code blocks** — these are the core of the plan.
+     Present them exactly as persisted, with inline `# ←` comments. The
+     user should understand every change by reading your output alone,
+     without opening the issue file or source files.
+   - **Why, Risk, and Verify** for each step — so the user can evaluate
+     the reasoning and flag concerns before review.
+   - **Test changes** — what tests are being added or modified.
+   - **Risks & mitigations** — the consolidated risk register.
+
+   The user should be able to evaluate the entire plan from your output.
+   If your presentation is just "plan created, run /relay-review", you
+   have NOT followed this step. Show the code. Show the before/after.
+
 ## Navigation
-When finished, tell the user:
+When finished, after presenting the full plan details from step 8 above,
+tell the user:
 - "Next: run **/relay-review** for adversarial review of the plan."
 
 ## Notes
@@ -152,7 +171,7 @@ When finished, tell the user:
 - The step-by-step decomposition is key: it allows incremental implementation with verification at each stage
 - "Stress-test every assumption" means re-reading the actual code, not relying on the issue/feature description
 - The plan should be detailed enough that someone unfamiliar with the codebase could execute it
-- Before/After code blocks are NOT optional — they are the core of each step. The reader should be able to understand the entire change by reading the code blocks alone, without opening any source files. Use real code, not pseudocode. Add inline comments (# ← ...) on key lines to explain what they do
+- Before/After code blocks are NOT optional — they are the core of each step. The reader should be able to understand the entire change by reading the code blocks alone, without opening any source files. Use real code, not pseudocode. Add an inline comment (# ← ...) on EVERY line — not just key lines. Each comment explains what the line does and, for changed lines, what changed and why
 - If the analysis revealed related items that should be addressed together, the plan should include steps for all of them
 - On a revision cycle (after REJECTED), the plan replaces the previous version in-place — never two Implementation Plan sections in one file
 - If the plan is later revised (e.g., after /relay-review returns APPROVED WITH CHANGES), update the plan in the issue/feature file — don't append a second copy
