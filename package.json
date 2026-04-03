@@ -1,7 +1,7 @@
 {
   "name": "relay-workflow",
-  "version": "2.0.6",
-  "description": "Persistent memory for AI coding workflows — Claude Code skills that give agents memory of what was built, what broke, and what's next",
+  "version": "3.0.0",
+  "description": "Persistent memory for AI coding workflows — skills for Claude Code, Codex CLI, and Gemini CLI that give agents memory of what was built, what broke, and what's next",
   "main": "tools/cli.js",
   "bin": {
     "relay-workflow": "tools/cli.js"
@@ -12,6 +12,11 @@
   "keywords": [
     "claude",
     "claude-code",
+    "codex",
+    "gemini",
+    "openai",
+    "google",
+    "multi-platform",
     "ai-workflow",
     "ai-memory",
     "coding-agent",

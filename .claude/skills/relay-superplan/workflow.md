@@ -54,8 +54,7 @@ The context block must include:
 
 ## Step 2 — Dispatch 5 planning agents in parallel
 
-Launch 5 agents using the Agent tool. All 5 must run **in a single message**
-(parallel dispatch). Each agent receives the same context block but a different
+Launch 5 parallel agents. All 5 must run **concurrently in a single dispatch**. Each agent receives the same context block but a different
 planning directive.
 
 **Announce to the user:** "Dispatching 5 planning agents with different strategies:

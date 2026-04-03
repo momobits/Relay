@@ -141,6 +141,7 @@ Check if any items are in-progress (have pipeline sections appended):
 | **/relay-verify** | Verify implementation |
 | **/relay-notebook** | Create verification notebook |
 | **/relay-resolve** | Close out and archive completed work |
+| **/relay-help** | Navigation guidance — where you are now |
 
 ## Workflow Paths
 

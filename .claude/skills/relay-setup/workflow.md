@@ -29,15 +29,21 @@ Create this file to track the installed Relay version:
 
 | Field | Value |
 |-------|-------|
-| **Version** | 2.0.5 |
+| **Version** | 3.0.0 |
 | **Installed** | [YYYY-MM-DD] |
 | **Source** | https://github.com/momobits/Relay |
 | **Format** | skills |
 
 ## Changelog
 
+### 3.0.0 — Cross-platform support
+- Skills install to both `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex CLI, Gemini CLI)
+- Installer generates AGENTS.md and GEMINI.md context files
+- Workflow language updated for platform-agnostic tool references
+- Added `/relay-superplan` (16 skills total)
+
 ### 2.0.2 — Skills-based workflow
-- Converted 14 prompts to Claude Code skills plus new `/relay-help` navigation skill (15 total)
+- Converted 14 prompts to skills plus new `/relay-help` navigation skill (15 total)
 - Added `/relay-help` navigation skill
 - Skills are auto-discovered — no more `@file.md` references
 - `.relay/` is now data-only (issues, features, status, config, archives)
@@ -48,24 +54,28 @@ Create this file to track the installed Relay version:
 
 ## Skills Manifest
 
-| Skill | File | Purpose |
-|-------|------|---------|
-| /relay-setup | .claude/skills/relay-setup/ | Initialize Relay in a project |
-| /relay-scan | .claude/skills/relay-scan/ | Generate relay-status.md |
-| /relay-order | .claude/skills/relay-order/ | Prioritize work ordering |
-| /relay-discover | .claude/skills/relay-discover/ | Scan codebase for issues |
-| /relay-new-issue | .claude/skills/relay-new-issue/ | File a specific bug or gap |
-| /relay-brainstorm | .claude/skills/relay-brainstorm/ | Explore feature ideas |
-| /relay-design | .claude/skills/relay-design/ | Design features from brainstorm |
-| /relay-cleanup | .claude/skills/relay-cleanup/ | Archive stale brainstorms |
-| /relay-analyze | .claude/skills/relay-analyze/ | Validate before implementation |
-| /relay-plan | .claude/skills/relay-plan/ | Create implementation plan |
-| /relay-superplan | .claude/skills/relay-superplan/ | Create plan via 5 competing agents |
-| /relay-review | .claude/skills/relay-review/ | Adversarial review of plan |
-| /relay-verify | .claude/skills/relay-verify/ | Verify implementation |
-| /relay-notebook | .claude/skills/relay-notebook/ | Verification notebook |
-| /relay-resolve | .claude/skills/relay-resolve/ | Close out and archive |
-| /relay-help | .claude/skills/relay-help/ | Navigation guidance |
+Skills are in your platform's skill directory:
+- Claude Code: `.claude/skills/relay-*/`
+- Codex CLI / Gemini CLI: `.agents/skills/relay-*/`
+
+| Skill | Purpose |
+|-------|---------|
+| /relay-setup | Initialize Relay in a project |
+| /relay-scan | Generate relay-status.md |
+| /relay-order | Prioritize work ordering |
+| /relay-discover | Scan codebase for issues |
+| /relay-new-issue | File a specific bug or gap |
+| /relay-brainstorm | Explore feature ideas |
+| /relay-design | Design features from brainstorm |
+| /relay-cleanup | Archive stale brainstorms |
+| /relay-analyze | Validate before implementation |
+| /relay-plan | Create implementation plan |
+| /relay-superplan | Create plan via 5 competing agents |
+| /relay-review | Adversarial review of plan |
+| /relay-verify | Verify implementation |
+| /relay-notebook | Verification notebook |
+| /relay-resolve | Close out and archive |
+| /relay-help | Navigation guidance |
 
 ### Status files
 
@@ -305,4 +315,4 @@ When setup is complete, tell the user:
 
 - Status files (relay-status.md, relay-ordering.md) are generated artifacts — they get real content after running the prepare skills
 - relay-config.md is populated during Phase 2 and maintained manually + refreshed by /relay-resolve after each resolved phase
-- The Relay skills (/relay-discover, /relay-scan, /relay-order, /relay-analyze, etc.) must be present in .claude/skills/ for the workflow to function
+- The Relay skills (/relay-discover, /relay-scan, /relay-order, /relay-analyze, etc.) must be present in the skill directory for the workflow to function

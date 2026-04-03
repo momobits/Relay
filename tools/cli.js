@@ -3,8 +3,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "2.0.6";
-const SKILLS_DIR = ".claude/skills";
+const VERSION = "3.0.0";
+const CLAUDE_SKILLS_DIR = ".claude/skills";
+const AGENTS_SKILLS_DIR = ".agents/skills";
+const MARKER_START = "<!-- relay-workflow:start -->";
+const MARKER_END = "<!-- relay-workflow:end -->";
 
 const RELAY_SKILLS = [
   "relay-analyze",
@@ -39,9 +42,111 @@ function copyDirRecursive(src, dest) {
   }
 }
 
+function generateRelaySection() {
+  return `${MARKER_START}
+## Relay Workflow Skills
+
+Relay gives AI coding agents persistent memory of what was built, what broke,
+and what's next. Skills are in \`.agents/skills/relay-*/\`.
+
+| Skill | Purpose |
+|-------|---------|
+| /relay-setup | Initialize Relay in a new project |
+| /relay-scan | Generate project status |
+| /relay-order | Prioritize work |
+| /relay-discover | Scan codebase for issues |
+| /relay-new-issue | File a specific bug or gap |
+| /relay-brainstorm | Explore a feature idea |
+| /relay-design | Design features from brainstorm |
+| /relay-cleanup | Archive stale brainstorms |
+| /relay-analyze | Validate item before implementation |
+| /relay-plan | Create implementation plan |
+| /relay-superplan | Create plan via 5 competing agents |
+| /relay-review | Adversarial review of plan |
+| /relay-verify | Verify implementation |
+| /relay-notebook | Verification notebook |
+| /relay-resolve | Close out and archive |
+| /relay-help | Navigate the workflow |
+
+Start with \`/relay-setup\`, then \`/relay-help\`.
+
+Workflow: \`/relay-analyze\` → \`/relay-plan\` or \`/relay-superplan\` → \`/relay-review\` → implement → \`/relay-verify\` → \`/relay-notebook\` → \`/relay-resolve\`
+${MARKER_END}`;
+}
+
+function appendContextFile(targetDir, fileName) {
+  const filePath = path.join(targetDir, fileName);
+  const section = generateRelaySection();
+
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, section + "\n", "utf8");
+    return "created";
+  }
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const startIdx = content.indexOf(MARKER_START);
+
+  if (startIdx !== -1) {
+    const endIdx = content.indexOf(MARKER_END, startIdx);
+    if (endIdx !== -1) {
+      // Replace existing section
+      const before = content.substring(0, startIdx);
+      const after = content.substring(endIdx + MARKER_END.length);
+      fs.writeFileSync(filePath, before + section + after, "utf8");
+      return "updated";
+    }
+    // Start marker found but no end marker — don't modify
+    console.warn(`  Warning: Found start marker but no end marker in ${fileName}, skipping update`);
+    return "skipped";
+  }
+
+  // Append to existing file
+  const separator = content.endsWith("\n") ? "\n" : "\n\n";
+  fs.writeFileSync(filePath, content + separator + section + "\n", "utf8");
+  return "appended";
+}
+
+function removeContextSection(targetDir, fileName) {
+  const filePath = path.join(targetDir, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const startIdx = content.indexOf(MARKER_START);
+
+  if (startIdx === -1) {
+    return; // No relay section
+  }
+
+  const endIdx = content.indexOf(MARKER_END, startIdx);
+  if (endIdx === -1) {
+    console.warn(`  Warning: Found start marker but no end marker in ${fileName}, skipping removal`);
+    return;
+  }
+
+  let before = content.substring(0, startIdx);
+  let after = content.substring(endIdx + MARKER_END.length);
+
+  // Trim extra blank lines around the removed block
+  before = before.replace(/\n+$/, "");
+  after = after.replace(/^\n+/, "");
+
+  const result = before && after ? before + "\n\n" + after : (before + after).trim();
+
+  if (!result) {
+    fs.unlinkSync(filePath);
+    return;
+  }
+
+  fs.writeFileSync(filePath, result + "\n", "utf8");
+}
+
 function install(targetDir) {
-  const skillsSrc = path.join(__dirname, "..", SKILLS_DIR);
-  const skillsDest = path.join(targetDir, SKILLS_DIR);
+  const skillsSrc = path.join(__dirname, "..", CLAUDE_SKILLS_DIR);
+  const claudeDest = path.join(targetDir, CLAUDE_SKILLS_DIR);
+  const agentsDest = path.join(targetDir, AGENTS_SKILLS_DIR);
 
   // Verify source skills exist
   if (!fs.existsSync(skillsSrc)) {
@@ -49,21 +154,22 @@ function install(targetDir) {
     process.exit(1);
   }
 
-  // Create .claude/skills/ in target
-  try {
-    fs.mkdirSync(skillsDest, { recursive: true });
-  } catch (err) {
-    console.error(`\n  Error: Cannot create ${skillsDest}\n  ${err.message}\n`);
-    process.exit(1);
+  // Create both skill directories in target
+  for (const dest of [claudeDest, agentsDest]) {
+    try {
+      fs.mkdirSync(dest, { recursive: true });
+    } catch (err) {
+      console.error(`\n  Error: Cannot create ${dest}\n  ${err.message}\n`);
+      process.exit(1);
+    }
   }
 
-  // Copy each relay skill
+  // Copy each relay skill to both directories
   let installed = 0;
   let skipped = 0;
 
   for (const skill of RELAY_SKILLS) {
     const src = path.join(skillsSrc, skill);
-    const dest = path.join(skillsDest, skill);
 
     if (!fs.existsSync(src)) {
       console.warn(`  Warning: ${skill} not found in package, skipping`);
@@ -71,35 +177,46 @@ function install(targetDir) {
       continue;
     }
 
-    // Check for existing installation
-    if (fs.existsSync(dest)) {
-      const existingSkill = path.join(dest, "SKILL.md");
-      if (fs.existsSync(existingSkill)) {
-        // Overwrite — update to latest
+    for (const destBase of [claudeDest, agentsDest]) {
+      const dest = path.join(destBase, skill);
+
+      if (fs.existsSync(dest)) {
         fs.rmSync(dest, { recursive: true, force: true });
       }
+
+      copyDirRecursive(src, dest);
     }
 
-    copyDirRecursive(src, dest);
     installed++;
   }
 
-  console.log(`\n  Installed ${installed} Relay skills into ${path.relative(process.cwd(), skillsDest)}/`);
+  console.log(`\n  Installed ${installed} Relay skills into:`);
+  console.log(`    ${path.relative(process.cwd(), claudeDest)}/   (Claude Code)`);
+  console.log(`    ${path.relative(process.cwd(), agentsDest)}/   (Codex CLI, Gemini CLI)`);
+
   if (skipped > 0) {
     console.log(`  Skipped ${skipped} (not found in package)`);
   }
 
+  // Update context files
+  const agentsStatus = appendContextFile(targetDir, "AGENTS.md");
+  const geminiStatus = appendContextFile(targetDir, "GEMINI.md");
+
+  console.log(`\n  Context files:`);
+  console.log(`    AGENTS.md    ${agentsStatus}   (Codex CLI)`);
+  console.log(`    GEMINI.md    ${geminiStatus}   (Gemini CLI)`);
+
   // Show next steps
   console.log(`
   Next steps:
-    1. Open Claude Code in your project
+    1. Open your AI coding CLI (Claude Code, Codex, or Gemini)
     2. Run /relay-setup to initialize the .relay/ data directory
     3. Run /relay-help to see what to do next
 
   Skills installed:`);
 
   for (const skill of RELAY_SKILLS) {
-    const dest = path.join(skillsDest, skill);
+    const dest = path.join(claudeDest, skill);
     if (fs.existsSync(dest)) {
       console.log(`    /${skill}`);
     }
@@ -109,19 +226,31 @@ function install(targetDir) {
 }
 
 function uninstall(targetDir) {
-  const skillsDest = path.join(targetDir, SKILLS_DIR);
+  const claudeDest = path.join(targetDir, CLAUDE_SKILLS_DIR);
+  const agentsDest = path.join(targetDir, AGENTS_SKILLS_DIR);
   let removed = 0;
 
   for (const skill of RELAY_SKILLS) {
-    const dest = path.join(skillsDest, skill);
-    if (fs.existsSync(dest)) {
-      fs.rmSync(dest, { recursive: true, force: true });
-      removed++;
+    let found = false;
+    for (const destBase of [claudeDest, agentsDest]) {
+      const dest = path.join(destBase, skill);
+      if (fs.existsSync(dest)) {
+        fs.rmSync(dest, { recursive: true, force: true });
+        found = true;
+      }
     }
+    if (found) removed++;
   }
 
+  // Clean up context files
+  removeContextSection(targetDir, "AGENTS.md");
+  removeContextSection(targetDir, "GEMINI.md");
+
   if (removed > 0) {
-    console.log(`\n  Removed ${removed} Relay skills from ${path.relative(process.cwd(), skillsDest)}/`);
+    console.log(`\n  Removed ${removed} Relay skills from:`);
+    console.log(`    ${path.relative(process.cwd(), claudeDest)}/`);
+    console.log(`    ${path.relative(process.cwd(), agentsDest)}/`);
+    console.log("  Cleaned relay sections from AGENTS.md and GEMINI.md");
     console.log("  Note: .relay/ data directory was NOT removed (your issues, features, and history are preserved)\n");
   } else {
     console.log("\n  No Relay skills found to remove.\n");
@@ -132,6 +261,7 @@ function showHelp() {
   console.log(`
   relay-workflow v${VERSION}
   Persistent memory for AI coding workflows
+  Works with: Claude Code, OpenAI Codex CLI, Google Gemini CLI
 
   Usage:
     npx relay-workflow install     Install Relay skills into current project
@@ -140,11 +270,12 @@ function showHelp() {
     npx relay-workflow help        Show this help
 
   What it does:
-    Copies 15 Claude Code skills into .claude/skills/relay-*/
+    Copies ${RELAY_SKILLS.length} skills into .claude/skills/relay-*/ and .agents/skills/relay-*/
+    Updates AGENTS.md and GEMINI.md with skill references
     These skills give AI agents persistent memory across sessions.
 
   After install:
-    1. Open Claude Code
+    1. Open your AI coding CLI (Claude Code, Codex, or Gemini)
     2. Run /relay-setup to initialize
     3. Run /relay-help for guidance
   `);

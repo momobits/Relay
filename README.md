@@ -12,9 +12,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-brightgreen?style=flat-square&logo=node.js)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skills-blueviolet?style=flat-square)](https://docs.anthropic.com/en/docs/claude-code)
+[![Codex CLI](https://img.shields.io/badge/Codex_CLI-Skills-orange?style=flat-square)](https://github.com/openai/codex)
+[![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Skills-blue?style=flat-square)](https://github.com/google-gemini/gemini-cli)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
-A skill-driven workflow system that gives AI coding agents persistent memory of what was built, what broke, and what's next. It replaces the ephemeral, conversation-scoped context that AI models operate in with a structured documentation system that survives across sessions, models, and teams.
+A skill-driven workflow system that gives AI coding agents persistent memory of what was built, what broke, and what's next. Works with **Claude Code**, **OpenAI Codex CLI**, and **Google Gemini CLI**. It replaces the ephemeral, conversation-scoped context that AI models operate in with a structured documentation system that survives across sessions, models, and teams.
 
 ## The Problem
 
@@ -56,18 +58,19 @@ Or install manually:
 ```bash
 git clone https://github.com/momobits/Relay.git /tmp/relay
 cp -r /tmp/relay/.claude/skills/relay-* your-project/.claude/skills/
+cp -r /tmp/relay/.claude/skills/relay-* your-project/.agents/skills/
 rm -rf /tmp/relay
 ```
 
 ### 2. Setup
 
-In Claude Code, run:
+In your AI coding CLI (Claude Code, Codex, or Gemini), run:
 
 ```
 /relay-setup
 ```
 
-This creates the `.relay/` data directory, generates initial status files, and scans your project for customizations (edge cases, test commands, notebook patterns).
+This creates the `.relay/` data directory, generates initial status files, and scans your project for customizations (edge cases, test commands, notebook patterns). Works the same in all three CLIs.
 
 ### 3. First Run
 
@@ -89,7 +92,7 @@ Need help? Run `/relay-help` to see where you are and what to do next.
 
 ## How It Works
 
-Relay uses **Claude Code skills** — each workflow step is a skill you invoke with `/relay-*`. The skills read and write to the `.relay/` data directory, building up persistent documentation across sessions.
+Relay uses **skills** — each workflow step is a skill you invoke with `/relay-*`. The skills read and write to the `.relay/` data directory, building up persistent documentation across sessions. Skills are installed to both `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex CLI, Gemini CLI).
 
 ### Workflow Categories
 
@@ -304,7 +307,7 @@ After setup, your project will have:
 ```
 your-project/
 ├── .claude/
-│   └── skills/
+│   └── skills/                   # Claude Code skills
 │       ├── relay-setup/          # Initialize Relay
 │       ├── relay-scan/           # Generate status
 │       ├── relay-order/          # Prioritize work
@@ -315,12 +318,19 @@ your-project/
 │       ├── relay-cleanup/        # Archive stale brainstorms
 │       ├── relay-analyze/        # Validate before implementation
 │       ├── relay-plan/           # Create implementation plan
-│       ├── relay-superplan/     # Create plan via 5 competing agents
+│       ├── relay-superplan/      # Create plan via 5 competing agents
 │       ├── relay-review/         # Adversarial review
 │       ├── relay-verify/         # Verify implementation
 │       ├── relay-notebook/       # Verification notebook
 │       ├── relay-resolve/        # Close out and archive
 │       └── relay-help/           # Navigation guidance
+│
+├── .agents/
+│   └── skills/                   # Codex CLI + Gemini CLI skills
+│       └── relay-*/              # (same skills, mirrored)
+│
+├── AGENTS.md                     # Codex CLI context (relay section)
+├── GEMINI.md                     # Gemini CLI context (relay section)
 │
 ├── .relay/                       # Data directory (created by /relay-setup)
 │   ├── version.md                # Installed version and skills manifest
@@ -360,7 +370,7 @@ your-project/
 
 To extend the workflow with a new skill:
 
-1. Create a new directory in `.claude/skills/relay-[name]/` with:
+1. Create a new directory in `.claude/skills/relay-[name]/` (and `.agents/skills/relay-[name]/`) with:
    - `SKILL.md` — frontmatter (name, description) + "Follow the instructions in ./workflow.md."
    - `workflow.md` — the full skill instructions
 
