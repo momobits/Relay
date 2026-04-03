@@ -1,6 +1,6 @@
 # Relay: Code — Verify Implementation
 
-**Sequence**: `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → **`/relay-verify`** → `/relay-notebook` → `/relay-resolve`
+**Sequence**: `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → **`/relay-verify`** → `/relay-notebook` → `/relay-resolve`
 
 The implementation is complete. Verify it against the finalized plan.
 

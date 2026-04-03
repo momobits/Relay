@@ -100,6 +100,7 @@ PREPARE          DISCOVERY          FEATURE              CODE
 /relay-scan      /relay-discover    /relay-brainstorm    /relay-analyze
   |                (scan for          |                      |
 /relay-order       issues)        /relay-design          /relay-plan
+                                                        or /relay-superplan
                  /relay-new-issue     |                      |
                    (file item)   /relay-cleanup          /relay-review
                                    (archive stale            |
@@ -164,6 +165,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 |-------|---------|
 | **/relay-analyze** | Validates the item still exists, performs root cause analysis, maps blast radius. Reads ALL items and archives for full context. |
 | **/relay-plan** | Creates atomic, independently-verifiable implementation steps. Each step specifies WHAT, HOW, WHY, RISK, VERIFY, ROLLBACK. |
+| **/relay-superplan** | Alternative to `/relay-plan`. Dispatches 5 competing agents (Minimal Change, Performance-First, Safety-First, Refactor-Forward, Test-Driven), then synthesizes the best approach. Same output format as `/relay-plan`. |
 | **/relay-review** | Adversarial review that tries to break the plan. Tests edge cases, checks for regressions. Produces APPROVED, APPROVED WITH CHANGES, or REJECTED verdict. |
 | **/relay-verify** | Post-implementation check: diff vs plan, completeness, correctness, regression tests. |
 | **/relay-notebook** | Creates a Jupyter verification notebook that exercises the real project API end-to-end, runs every cell, iterates until all pass. |
@@ -191,9 +193,9 @@ Run `/relay-scan` then `/relay-order`. The issue appears in relay-ordering.md ba
 
 The AI reads ALL issues, features, archives, and implemented docs. Produces a structured analysis **appended to the issue file**: validation, root cause, blast radius, approach.
 
-### Step 4: Plan (`/relay-plan`)
+### Step 4: Plan (`/relay-plan` or `/relay-superplan`)
 
-Creates an atomic plan with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK for each step. **Appended to the issue file**.
+Creates an atomic plan with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK for each step. **Appended to the issue file**. Use `/relay-superplan` for complex changes — it dispatches 5 agents with different strategies and synthesizes the best approach.
 
 ### Step 5: Review (`/relay-review`)
 
@@ -237,7 +239,7 @@ Run `/relay-scan` and `/relay-order` to integrate features into the backlog.
 
 For each feature, in order:
 ```
-/relay-analyze → /relay-plan → /relay-review → implement → /relay-verify → /relay-notebook → /relay-resolve
+/relay-analyze → /relay-plan (or /relay-superplan) → /relay-review → implement → /relay-verify → /relay-notebook → /relay-resolve
 ```
 
 ---
@@ -258,7 +260,7 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 │  Validation, root cause, blast radius, approach          │
 │                                                          │
 │  ---                                                     │
-│  ## Implementation Plan                                  │  ← /relay-plan
+│  ## Implementation Plan                                  │  ← /relay-plan or /relay-superplan
 │  Steps with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK            │
 │                                                          │
 │  ---                                                     │
@@ -313,6 +315,7 @@ your-project/
 │       ├── relay-cleanup/        # Archive stale brainstorms
 │       ├── relay-analyze/        # Validate before implementation
 │       ├── relay-plan/           # Create implementation plan
+│       ├── relay-superplan/     # Create plan via 5 competing agents
 │       ├── relay-review/         # Adversarial review
 │       ├── relay-verify/         # Verify implementation
 │       ├── relay-notebook/       # Verification notebook

@@ -1,6 +1,6 @@
 # Relay: Code — Analyze & Validate
 
-**Sequence**: **`/relay-analyze`** → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: **`/relay-analyze`** → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 I want to work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A"].
 
@@ -124,7 +124,7 @@ Do NOT write code yet. Do NOT create a plan yet. Just analyze.
 Output: Updated issue/feature file(s) in .relay/issues/ or .relay/features/ with analysis appended
 
 9. Present the analysis to the user BEFORE stating the next step.
-   Do NOT skip to "run /relay-plan". The user must see the substance of
+   Do NOT skip to "run /relay-plan or /relay-superplan". The user must see the substance of
    your analysis, not just that you did one. For each item analyzed, show:
 
    - **Validation**: what you found when you read the current source — quote
@@ -141,7 +141,7 @@ Output: Updated issue/feature file(s) in .relay/issues/ or .relay/features/ with
    - **Approach**: your recommendation and why alternatives were rejected.
 
    The user should be able to evaluate your analysis without opening any
-   files. If your presentation is just "analysis complete, run /relay-plan",
+   files. If your presentation is just "analysis complete, run /relay-plan (or /relay-superplan)",
    you have NOT followed this step. Show the scenarios. Show the code.
    Show the before/after.
 
@@ -151,11 +151,13 @@ When finished, tell the user the next step based on the outcome:
   "This item is stale. Run **/relay-resolve** to archive it as a stale close-out. Then run **/relay-scan** to refresh project status."
 - Otherwise:
   After presenting the full analysis details from step 9 above, conclude with:
-  "Next: run **/relay-plan** to create the implementation plan."
+  "Next: create the implementation plan. Choose one:
+  - **/relay-plan** — single-pass plan (faster, good for straightforward changes)
+  - **/relay-superplan** — dispatches 5 competing agents with different strategies (Minimal Change, Performance-First, Safety-First, Refactor-Forward, Test-Driven), then synthesizes the best approach. Better for complex or high-risk changes where exploring multiple approaches adds value."
 
 ## Notes
 
-- The analysis is persisted in the issue/feature file so it survives across conversations and is available to /relay-plan
+- The analysis is persisted in the issue/feature file so it survives across conversations and is available to /relay-plan or /relay-superplan
 - This skill forces validation before planning — catching stale items and wrong approaches early
 - The "read all items" step is critical: it prevents changes that conflict with other known problems or planned features
 - Reading archive/ and implemented/ provides historical context — knowing what was already tried, what approaches worked, and what caveats were noted prevents repeating mistakes and protects past work from regression

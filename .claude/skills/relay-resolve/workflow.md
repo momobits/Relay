@@ -1,6 +1,6 @@
 # Relay: Code — Resolve & Close
 
-**Sequence**: `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → **`/relay-resolve`**
+**Sequence**: `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → **`/relay-resolve`**
 
 The work on [PHASE/ITEM from relay-ordering.md, e.g. "Phase 1A" or
 individual item "store_communities_n_plus_1"] is complete and verified.

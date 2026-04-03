@@ -1,6 +1,6 @@
 # Relay: Feature — Brainstorm & Explore
 
-**Sequence**: **`/relay-brainstorm`** → `/relay-design` → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: **`/relay-brainstorm`** → `/relay-design` → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 I want to explore a feature idea: [DESCRIPTION]
 

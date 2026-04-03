@@ -1,6 +1,6 @@
 # Relay: Feature — Design & Specify
 
-**Sequence**: `/relay-brainstorm` → **`/relay-design`** → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: `/relay-brainstorm` → **`/relay-design`** → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 Design the features from the brainstorm file.
 
@@ -89,7 +89,7 @@ to run **/relay-brainstorm** first.
 
 Do NOT update relay-status.md or relay-ordering.md — that is the
 responsibility of the prepare skills.
-Do NOT create implementation plans — that is /relay-plan's job.
+Do NOT create implementation plans — that is /relay-plan's (or /relay-superplan's) job.
 
 ## Navigation
 When finished, tell the user:
@@ -98,7 +98,7 @@ When finished, tell the user:
 ## Notes
 
 - Each feature file is self-contained but links back to the brainstorm for context and links to sibling features
-- The design should be detailed enough for /relay-plan to create an implementation plan from it
+- The design should be detailed enough for /relay-plan or /relay-superplan to create an implementation plan from it
 - Development order is recorded in each file, but /relay-order makes the final project-wide prioritization
 - If designing reveals the brainstorm's breakdown was wrong (features should be split or merged differently), update the brainstorm file and confirm with the user before proceeding
 - For simple single-feature brainstorms, this phase creates one file and is brief

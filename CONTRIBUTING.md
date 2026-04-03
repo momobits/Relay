@@ -93,9 +93,9 @@ Skills communicate through sections appended to `.relay/issues/*.md` and `.relay
 
 | Section | Written by | Read by |
 |---------|-----------|---------|
-| `## Analysis` | relay-analyze | relay-plan, relay-scan |
-| `## Implementation Plan` | relay-plan | relay-review, relay-verify, relay-scan |
-| `## Adversarial Review` | relay-review | relay-plan (if REJECTED), relay-verify, relay-scan |
+| `## Analysis` | relay-analyze | relay-plan, relay-superplan, relay-scan |
+| `## Implementation Plan` | relay-plan or relay-superplan | relay-review, relay-verify, relay-scan |
+| `## Adversarial Review` | relay-review | relay-plan or relay-superplan (if REJECTED), relay-verify, relay-scan |
 | `## Implementation Guidelines` | relay-review | relay-verify, relay-help, relay-scan |
 | `## Verification Report` | relay-verify | relay-notebook, relay-resolve, relay-help, relay-scan |
 | `## Post-Implementation Fix #N` | relay-notebook | relay-resolve |

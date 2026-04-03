@@ -35,14 +35,14 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    For every issue file (.relay/issues/*.md) and feature file
    (.relay/features/*.md), check which pipeline sections have been appended
    to determine the current workflow stage:
-   - Has ## Analysis but no ## Implementation Plan → stage: /relay-plan
+   - Has ## Analysis but no ## Implementation Plan → stage: /relay-plan or /relay-superplan
    - Has ## Implementation Plan but no ## Adversarial Review → stage: /relay-review
    - Has ## Adversarial Review (APPROVED/APPROVED WITH CHANGES) and
      ## Implementation Guidelines but no ## Verification Report → stage: implement
    - Has ## Verification Report (verdict COMPLETE) but no notebook in
      .relay/notebooks/ → stage: /relay-notebook
    - Has ## Verification Report (verdict INCOMPLETE or HAS ISSUES) → stage: re-verify
-   - Has ## Adversarial Review with verdict REJECTED → stage: /relay-plan (revision)
+   - Has ## Adversarial Review with verdict REJECTED → stage: /relay-plan or /relay-superplan (revision)
    - If multiple ## Adversarial Review sections exist, use the verdict
      from the LAST one to determine stage
    Write these under a "## In-Progress Work" section in relay-status.md:

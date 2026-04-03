@@ -1,6 +1,6 @@
 # Relay: Create Issue
 
-**Sequence**: **`/relay-new-issue`** → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: **`/relay-new-issue`** → `/relay-scan` → `/relay-order` → `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 ## How to invoke
 

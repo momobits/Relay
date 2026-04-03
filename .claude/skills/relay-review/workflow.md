@@ -1,13 +1,14 @@
 # Relay: Code — Adversarial Review & Finalize
 
-**Sequence**: `/relay-analyze` → `/relay-plan` → **`/relay-review`** → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: `/relay-analyze` → `/relay-plan` or `/relay-superplan` → **`/relay-review`** → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 Review the implementation plan as an adversary. Your job is to find holes,
 not to confirm it's good.
 
 0. Read the target item file(s) and verify an ## Implementation Plan
-   section exists (from /relay-plan). If no plan exists, STOP and tell
-   the user: "No implementation plan found. Run **/relay-plan** first."
+   section exists (from /relay-plan or /relay-superplan). If no plan exists,
+   STOP and tell the user: "No implementation plan found. Run **/relay-plan**
+   or **/relay-superplan** first."
 
 1. For each step in the plan, attempt to break it:
    - What happens if this step partially fails (e.g., first query succeeds,
@@ -207,10 +208,10 @@ When finished, tell the user the next step based on the verdict:
    **/relay-analyze** to pick the next item from relay-ordering.md."
 
 - If REJECTED:
-  "The plan needs rework. Run **/relay-plan** to revise the plan
-   incorporating the rejection feedback from the Adversarial Review.
-   If this is the second or subsequent rejection, consider whether the
-   approach itself is flawed — run **/relay-analyze** to reconsider
+  "The plan needs rework. Run **/relay-plan** or **/relay-superplan** to
+   revise the plan incorporating the rejection feedback from the Adversarial
+   Review. If this is the second or subsequent rejection, consider whether
+   the approach itself is flawed — run **/relay-analyze** to reconsider
    the fundamental approach before re-planning."
 
 - If the user disagrees with the verdict:
@@ -223,7 +224,7 @@ When finished, tell the user the next step based on the verdict:
 - If reviewing a multi-item phase with split verdicts (some items
   APPROVED, some REJECTED or DEFERRED):
   Items with no dependencies on rejected/deferred items may proceed to
-  implementation independently. Rejected items return to /relay-plan.
+  implementation independently. Rejected items return to /relay-plan or /relay-superplan.
   Deferred items are moved in relay-ordering.md per the DEFERRED
   instructions above. If cross-dependencies exist between approved
   and rejected/deferred items, all dependent items must be re-planned
@@ -235,7 +236,7 @@ When finished, tell the user the next step based on the verdict:
 - The "re-read each target file NOW" instruction is critical: it catches drift between planning and review
 - Edge cases in the edge cases section should be specific to this project — update them as the codebase evolves
 - If the verdict is DEFERRED, update relay-ordering.md immediately — strike through in the source phase, add to the target phase — so the ordering file stays current
-- If the verdict is REJECTED, go back to /relay-plan with the feedback. If repeated rejections indicate a fundamental approach problem, escalate to /relay-analyze
+- If the verdict is REJECTED, go back to /relay-plan or /relay-superplan with the feedback. If repeated rejections indicate a fundamental approach problem, escalate to /relay-analyze
 - The plan is only finalized when this skill returns APPROVED, or when the user confirms an APPROVED WITH CHANGES revision
 - When APPROVED WITH CHANGES, the issue/feature file's plan is updated in-place so there is always one source of truth
 - The review is persisted in the issue/feature file so the full lifecycle (problem/requirement → plan → review → verification) lives in one place

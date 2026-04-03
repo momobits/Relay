@@ -1,6 +1,6 @@
 # Relay: Code — Create & Validate Verification Notebook
 
-**Sequence**: `/relay-analyze` → `/relay-plan` → `/relay-review` → *implement* → `/relay-verify` → **`/relay-notebook`** → `/relay-resolve`
+**Sequence**: `/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → *implement* → `/relay-verify` → **`/relay-notebook`** → `/relay-resolve`
 
 Create a verification notebook for each implemented and verified issue/feature
 file in this phase, then RUN every cell and iterate until all cells pass.
@@ -307,5 +307,5 @@ When finished, tell the user:
 - Every notebook should be self-contained: create its own fixtures, don't depend on other notebooks
 - If a phase has multiple item files, create one notebook per item file (not one giant notebook)
 - Post-Implementation Fixes are numbered sequentially (#1, #2, #3...) and never replace each other — this preserves the full history of what went wrong and how it was addressed
-- If a post-implementation fix is large or complex enough to warrant full analysis, escalate: tell the user to re-run /relay-analyze → /relay-plan → /relay-review for it instead of handling inline
+- If a post-implementation fix is large or complex enough to warrant full analysis, escalate: tell the user to re-run /relay-analyze → /relay-plan (or /relay-superplan) → /relay-review for it instead of handling inline
 - For type (c) unrelated issues: /relay-new-issue handles the issue filing — provide the notebook context so it can investigate from a cold start

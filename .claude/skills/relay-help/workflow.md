@@ -90,9 +90,9 @@ Check if any items are in-progress (have pipeline sections appended):
 - If in-progress items found, recommend resuming from their current stage.
   Check sections in the item file to determine stage (check in this order —
   later conditions take precedence over earlier ones):
-  - Has ## Analysis but no ## Implementation Plan → "Resume with **/relay-plan** on [item]"
+  - Has ## Analysis but no ## Implementation Plan → "Resume with **/relay-plan** (single-pass) or **/relay-superplan** (5-agent synthesis) on [item]"
   - Has ## Implementation Plan but no ## Adversarial Review → "Resume with **/relay-review** on [item]"
-  - Has ## Adversarial Review with verdict REJECTED → "Plan was rejected. Resume with **/relay-plan** on [item] to revise"
+  - Has ## Adversarial Review with verdict REJECTED → "Plan was rejected. Resume with **/relay-plan** or **/relay-superplan** on [item] to revise"
   - Has ## Adversarial Review (APPROVED/APPROVED WITH CHANGES) but no ## Implementation Guidelines → "Ready to implement [item]. Say **'implement the plan'**"
   - Has ## Implementation Guidelines but no ## Verification Report → "Implementation may be done. Resume with **/relay-verify** on [item]"
   - Has ## Verification Report with verdict INCOMPLETE or HAS ISSUES → "Verification found issues. Resume with **/relay-verify** on [item]"
@@ -135,7 +135,8 @@ Check if any items are in-progress (have pipeline sections appended):
 | **/relay-scan** | Update project status |
 | **/relay-order** | Prioritize work |
 | **/relay-analyze** | Validate item before implementation |
-| **/relay-plan** | Create implementation plan |
+| **/relay-plan** | Create implementation plan (single-pass) |
+| **/relay-superplan** | Create implementation plan via 5 competing agents, then synthesize |
 | **/relay-review** | Adversarial review of plan |
 | **/relay-verify** | Verify implementation |
 | **/relay-notebook** | Create verification notebook |
@@ -152,7 +153,7 @@ Feature idea    →  /relay-brainstorm → /relay-design → /relay-scan → /re
 ## Code Pipeline
 
 ```
-/relay-analyze → /relay-plan → /relay-review → implement → /relay-verify → /relay-notebook → /relay-resolve
+/relay-analyze → /relay-plan OR /relay-superplan → /relay-review → implement → /relay-verify → /relay-notebook → /relay-resolve
 ```
 
 ## Notes

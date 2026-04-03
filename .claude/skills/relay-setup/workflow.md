@@ -60,6 +60,7 @@ Create this file to track the installed Relay version:
 | /relay-cleanup | .claude/skills/relay-cleanup/ | Archive stale brainstorms |
 | /relay-analyze | .claude/skills/relay-analyze/ | Validate before implementation |
 | /relay-plan | .claude/skills/relay-plan/ | Create implementation plan |
+| /relay-superplan | .claude/skills/relay-superplan/ | Create plan via 5 competing agents |
 | /relay-review | .claude/skills/relay-review/ | Adversarial review of plan |
 | /relay-verify | .claude/skills/relay-verify/ | Verify implementation |
 | /relay-notebook | .claude/skills/relay-notebook/ | Verification notebook |
