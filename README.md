@@ -5,7 +5,9 @@
  ██╔══██╗ ██╔══╝   ██║      ██╔══██║   ╚██╔╝
  ██║  ██║ ███████╗ ███████╗ ██║  ██║    ██║
  ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝    ╚═╝
-      persistent memory for AI workflows
+
+persistent memory for project workflows
+harnessing human creativity and frontier ai scale
 ```
 
 [![Version](https://img.shields.io/npm/v/relay-workflow?style=flat-square&color=blue)](https://www.npmjs.com/package/relay-workflow)
@@ -16,32 +18,38 @@
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Skills-blue?style=flat-square)](https://github.com/google-gemini/gemini-cli)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
-A skill-driven workflow system that gives AI coding agents persistent memory of what was built, what broke, and what's next. Works with **Claude Code**, **OpenAI Codex CLI**, and **Google Gemini CLI**. It replaces the ephemeral, conversation-scoped context that AI models operate in with a structured documentation system that survives across sessions, models, and teams.
+Relay is a structured workflow system for building software with AI. You direct the strategy — what to build, what to prioritize, when to ship. AI handles the scale — analyzing codebases, generating plans, reviewing implementations, verifying correctness. A persistent `.relay/` layer grows with every session, capturing decisions, context, and progress so nothing is ever lost between humans, models, or tools. Works with **Claude Code**, **OpenAI Codex CLI**, and **Google Gemini CLI**.
 
 ## The Problem
 
-When you use an AI model to build and maintain a codebase, every conversation starts from zero. The model doesn't know:
+When you use AI to build software, you're fighting three forces:
 
-- What issue it fixed last week and how
-- What feature it designed two hours ago
-- Which approach was tried and rejected for a similar problem
-- What other parts of the codebase were affected by recent changes
-- What work is queued up and in what order it should be tackled
+- **AI amnesia** — every conversation starts from zero. The model doesn't know what it built yesterday, which approach failed, or what's queued up next.
+- **Context fragmentation** — work spreads across sessions, tools, and people. Decisions live in chat logs that expire. Plans exist in one model's context window and vanish when the session ends.
+- **No structure for what's next** — you know there are bugs to fix and features to build, but there's no system to track them, prioritize them, or work through them in order. Issues pile up in your head or scattered notes. AI can scan your codebase and surface problems automatically, but without a workflow those findings evaporate with the session.
 
-This means you repeat context, re-explain decisions, risk re-introducing fixed bugs, and lose the thread of multi-session work. The bigger the project gets, the worse this becomes.
+The bigger the project, the worse it gets. You repeat yourself, re-explain architecture, risk undoing past work, and lose the thread of multi-session efforts. Human creativity gets buried under the overhead of re-establishing context.
 
 ## The Solution
 
-Relay creates a **living documentation layer** that serves as the AI's project memory:
+Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **Issues and features** are documented in structured `.md` files with full context
-- **Implementation plans, reviews, and verifications** are appended to those files as work progresses
-- **Verification notebooks** (`.ipynb`) provide executable proof that changes work
-- **Resolved items** are archived with implementation docs, preserving the full decision trail
-- **Status and ordering** files are regenerated to reflect current project state
-- **Project-specific customizations** are auto-detected during setup and maintained as the codebase evolves
+- **16 workflow skills** cover the full lifecycle: discover, brainstorm, design, analyze, plan, review, implement, verify, resolve
+- **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
+- **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
+- **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
+- **Full audit trail** — plans, reviews, verifications, and archived resolutions preserve the decision history so you can always trace why something was built the way it was
+- **Automated issue discovery** — AI scans your codebase for bugs, gaps, inconsistencies, and tech debt, then logs each finding as a structured issue file that persists across sessions
+- **Manual issue and feature filing** — spot a bug yourself or have a feature idea? File it directly into the workflow so it's tracked alongside discovered issues
+- **Prioritized ordering** — all tracked work is ranked by dependency, severity, and complexity into a phased plan, so you always know what to tackle next
 
-Every AI session reads this documentation before acting. Every session writes back what it did. The result is a continuous, auditable record that any AI model (or human) can pick up and continue.
+### Memory That Grows
+
+The `.relay/` directory is your project's long-term memory. Every analysis, plan, review, and resolution is persisted as structured markdown — not locked inside any model's context window. This memory compounds over time: each session inherits the full history of what was tried, what worked, and what was rejected. Months of context in seconds.
+
+### Use the Right Model for the Job
+
+Different frontier models have different strengths. Claude reasons deeply about architecture. Gemini processes massive codebases. Codex excels at rapid implementation. With Relay, you're not locked into one — use whichever model is best suited for the task at hand, or simply pick up with whatever's available. Hit your token limit on one? Continue in another without losing a single decision, analysis, or line of the plan. The relay never drops.
 
 ## Quick Start
 
