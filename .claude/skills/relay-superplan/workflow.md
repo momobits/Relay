@@ -57,6 +57,14 @@ The context block must include:
 Launch 5 parallel agents. All 5 must run **concurrently in a single dispatch**. Each agent receives the same context block but a different
 planning directive.
 
+**Dispatch requirements (non-negotiable):**
+- Use `subagent_type: Plan` for every agent. The `Plan` agent is read-only
+  (no Edit, Write, or NotebookEdit access), which physically prevents agents
+  from modifying the codebase while planning.
+- Every agent prompt must include the read-only directive shown in Step 3
+  ("You must NOT modify any files..."). This is a second line of defense in
+  case the subagent_type is ever changed.
+
 **Announce to the user:** "Dispatching 5 planning agents with different strategies:
 Minimal Change, Performance-First, Safety-First, Refactor-Forward, and Test-Driven.
 This will take a moment."
@@ -145,6 +153,14 @@ Each agent prompt must end with these format instructions so all 5 plans are
 structurally identical and comparable:
 
 ```
+READ-ONLY DIRECTIVE: You must NOT modify any files. Do NOT use Edit, Write,
+NotebookEdit, or any other file-modification tool. Do NOT run commands that
+mutate the repo. You are PLANNING ONLY — your job is to return plan text
+back to the caller, who will handle synthesis and persistence. If you catch
+yourself reaching for an edit tool, stop. The "real code" below means the
+real code you would write IF you were implementing — but you are not
+implementing. Return it as text inside the plan only.
+
 Produce your plan in this exact format. This is NOT optional — follow it precisely.
 
 Break the change into atomic, independently-verifiable steps. Each step should:
