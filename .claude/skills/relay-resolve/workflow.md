@@ -96,13 +96,147 @@ Close it out.
    - If a matching notebook exists in .relay/notebooks/[file].ipynb, move it
      to .relay/archive/notebooks/[file].ipynb
 
-5. Check if ANY remaining items in .relay/issues/ or .relay/features/ were
+5. Update exercise back-references and conditionally archive exercise files:
+
+   If .relay/relay-exercise.md does not exist, skip this step entirely
+   (the exercise pipeline is not in use in this project).
+
+   Otherwise, for each item archived in step 4 (iterate the same list):
+
+   5a. Compute the path transition:
+       - Active path: `issues/<file>.md` or `features/<file>.md`
+       - Archive path: `archive/issues/<file>.md` or `archive/features/<file>.md`
+
+   5b. Rewrite references to the active path in these locations:
+
+       i.   .relay/relay-exercise.md — in each capability table's
+            `Findings Filed` column, find any comma-separated entry
+            matching the active path and replace with the archive path.
+
+       ii.  .relay/exercise/*.md — in each active exercise file, find
+            lines matching `**Status:** filed: <active-path>` and
+            rewrite to `**Status:** filed: <archive-path>`.
+
+       iii. .relay/archive/exercise/*.md — same as (ii), for any
+            already-archived exercise files. These exist if a prior
+            /relay-resolve run already archived the exercise file
+            (per step 5c below) and we're now resolving a later issue
+            that still had stale references.
+
+       For each rewrite made, log it to the output:
+         "Rewrote reference in .relay/relay-exercise.md: issues/X.md → archive/issues/X.md"
+
+       Check idempotency: if a reference is already in archive form
+       (matches `archive/<type>/...`), skip it. This makes the step
+       safe to re-run.
+
+   5c. Check if the archived item came from an exercise, and if so,
+       whether the exercise is now fully resolved:
+
+       Read the archived item file (now at `archive/issues/<file>.md`
+       or `archive/features/<file>.md`). Look for a `*Source:*` header
+       line with the pattern:
+
+           *Source: exercise/<capability>.md finding <N>*
+           OR
+           *Source: archive/exercise/<capability>.md finding <N>*
+
+       - If no `*Source:*` line, the item didn't come from an exercise.
+         Skip to the next archived item.
+       - If the `*Source:*` path is already in archive form, the
+         exercise file is already archived. No further work needed.
+         Skip to the next archived item.
+       - If the `*Source:*` path is in active form (`exercise/<cap>.md`),
+         read the referenced exercise file at
+         `.relay/exercise/<capability>.md`. If the file does not exist
+         (e.g., manually deleted), log a warning: "Source exercise file
+         `<path>` not found; cannot determine resolution state. Skipping
+         exercise archival for this item." Skip to the next archived item.
+
+   5d. Determine if the exercise is fully resolved:
+
+       In the active exercise file, scan the Findings section for all
+       findings with Status starting with `filed:`. For each such
+       finding, check the path:
+
+       - If the path starts with `archive/issues/` or `archive/features/`,
+         the filed item is already archived. Count it as resolved.
+       - If the path starts with `issues/` or `features/` (active form),
+         the filed item is still active. The exercise is NOT yet
+         fully resolved.
+
+       Findings with Status `kept:`, `skipped`, or `draft` do NOT block
+       archival — notes, skipped findings, and anything still in draft
+       are handled as follows:
+       - `kept:` and `skipped` → no-op, they do not prevent archival
+       - `draft` → this indicates the filer was never run to completion
+         on this exercise, which is an anomaly. Log a warning:
+         "Exercise <capability> has draft findings — /relay-exercise-file
+         was not completed. Skipping exercise archival. Run the filer
+         first." Skip to the next archived item; do NOT archive this
+         exercise.
+
+       If every `filed:` finding points to an archived path (and there
+       are no `draft` findings), the exercise is fully resolved.
+       Proceed to 5e.
+
+   5e. Archive the exercise file (single-archival sweep):
+
+       i.   Move the exercise file:
+            `.relay/exercise/<capability>.md` →
+            `.relay/archive/exercise/<capability>.md`
+
+            If the exercise file has a timestamped re-run filename
+            (e.g., `outline-chapter-2026-04-12.md`), preserve the
+            timestamp in the archive filename.
+
+            Log: "Archived exercise: exercise/<capability>.md →
+                  archive/exercise/<capability>.md"
+
+       ii.  In the newly-archived exercise file, rewrite any
+            `**Status:** kept: exercise/<capability>.md` lines to
+            `**Status:** kept: archive/exercise/<capability>.md`.
+
+       iii. Rewrite `*Source:*` header lines in all issue and feature
+            files (both active and already-archived) that reference
+            this exercise. Search:
+            - .relay/issues/*.md
+            - .relay/features/*.md
+            - .relay/archive/issues/*.md
+            - .relay/archive/features/*.md
+
+            For any file containing
+            `*Source: exercise/<capability>.md finding <N>*`,
+            rewrite to
+            `*Source: archive/exercise/<capability>.md finding <N>*`.
+
+            Log each rewrite.
+
+       iv.  Update the .relay/relay-exercise.md hub row for this
+            capability:
+            - `Exercise File` column: `exercise/<capability>.md` →
+              `archive/exercise/<capability>.md`
+            - `Last Updated` column: today's date (YYYY-MM-DD)
+            - The `Status` column stays at `filed` — "filed" already
+              captures "all findings processed and resolved"; there
+              is no separate archived status.
+
+       v.   Append a Refresh Log entry to .relay/relay-exercise.md:
+            `**YYYY-MM-DD** — /relay-resolve: archived exercise
+             \`<capability>\`. All downstream items resolved.`
+
+   Summary of step 5: all exercise back-references are kept valid
+   whenever an issue/feature is archived, and exercise files are
+   archived automatically once every filed finding from them has
+   been resolved. No orphan references.
+
+6. Check if ANY remaining items in .relay/issues/ or .relay/features/ were
    partially addressed or affected by this change:
    - If an item was partially addressed, update it to reflect the new state
    - If an item's proposed approach needs adjustment because of this change,
      update it
 
-6. Refresh .relay/relay-config.md:
+7. Refresh .relay/relay-config.md:
    Since the project code has changed, check if relay-config.md is still
    accurate. For each section:
    - **Edge Cases**: scan the files modified in this phase. If any new
@@ -115,7 +249,7 @@ Close it out.
    Only update sections where the changes in this phase actually affect
    them — do not re-scan the entire codebase.
 
-7. Update .relay/relay-ordering.md:
+8. Update .relay/relay-ordering.md:
    For each resolved item, find it in relay-ordering.md and strike it
    through (wrap in ~~...~~). Add a link to the implementation doc.
    If all items in a phase are now resolved, mark the phase heading
@@ -133,5 +267,5 @@ When finished, tell the user:
 
 - This skill uses the same phase/item reference as /relay-analyze, so you can say "Phase 1A" consistently
 - If the phase contained multiple item files, they are all resolved and archived in one pass
-- Step 5 is important: resolving one item often changes the context for others — their proposed approaches may need updating
+- Step 6 is important: resolving one item often changes the context for others — their proposed approaches may need updating
 - This skill works for both full-pipeline items (with plan/review/verification) and items resolved outside the pipeline — step 1 adapts based on what exists in the item file
