@@ -1,5 +1,7 @@
 # Relay: Help & Navigation
 
+**Sequence**: **`/relay-help`** (navigation utility — invoke at any point)
+
 Analyze the user's intent and current project state, then guide them to the right skill.
 
 ## Execution

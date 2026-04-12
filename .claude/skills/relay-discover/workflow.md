@@ -54,3 +54,10 @@ To narrow the scan, the user can append one of these:
 - **Scope to a concern**: `Focus on security issues only`
 - **Scope to recent changes**: `Focus on files changed in the last 5 commits (use git diff)`
 - **Depth**: `Do a deep scan — read every function body` vs `Do a quick scan — focus on public API and integration points`
+
+## Notes
+
+- This skill reads and scans the codebase but does not modify relay-status.md or relay-ordering.md — run /relay-scan and /relay-order separately after discovery
+- Already-documented items (in .relay/issues/, .relay/features/, or .relay/archive/) should be skipped, not re-reported
+- For filing a single known issue, use /relay-new-issue instead — /relay-discover is for systematic codebase-wide scans
+- Scoping variants (module, concern, depth) can be combined for targeted scans

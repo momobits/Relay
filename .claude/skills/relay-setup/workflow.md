@@ -1,5 +1,7 @@
 # Relay: Setup Workflow
 
+**Sequence**: **`/relay-setup`** → `/relay-discover` → `/relay-scan` → `/relay-order` → `/relay-analyze` → ...
+
 Set up the Relay workflow system for this project.
 
 ## Phase 1 — Create structure and files
@@ -318,7 +320,18 @@ resolved phase). The skills /relay-review, /relay-verify, and
    - Concern scope: `/relay-discover Focus on security issues only`
    Present to the user for confirmation, then write to relay-config.md.
 
-5. **Python environment for verification notebooks**:
+5. **Python environment for verification notebooks** (conditional):
+   Check if the project contains Python code: look for `.py`
+   files (in the project root or `src/`), `pyproject.toml`,
+   `requirements.txt`, `setup.py`, or `Pipfile`.
+
+   If NO Python project indicators are found, skip this step
+   and report: *"No Python project detected — skipping notebook
+   environment setup. `/relay-notebook` will handle Python
+   dependencies on demand if needed later."*
+
+   If Python project indicators ARE found, proceed:
+
    Verification notebooks (/relay-notebook) require Python 3 and
    the packages `nbclient`, `nbformat`, `nbconvert`, `ipython`, and
    `ipykernel` to execute. Set these up now so notebooks work when

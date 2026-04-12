@@ -1,6 +1,6 @@
 # Relay: Code — Super Plan (Multi-Agent)
 
-**Sequence**: `/relay-analyze` → **`/relay-superplan`** → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
+**Sequence**: `/relay-analyze` → `/relay-plan` or **`/relay-superplan`** → `/relay-review` → *implement* → `/relay-verify` → `/relay-notebook` → `/relay-resolve`
 
 Generate an implementation plan by dispatching 5 competing agents, each using a
 different planning strategy, then synthesize the strongest elements into one final plan.
@@ -11,6 +11,16 @@ The output format is identical to `/relay-plan` — downstream skills (`/relay-r
 ---
 
 ## Prerequisites
+
+**Platform check**: This skill requires Claude Code's parallel
+agent dispatch capability (`subagent_type: Plan`). If running
+in Codex CLI, Gemini CLI, or another platform without parallel
+agent dispatch, STOP and tell the user:
+*"Multi-agent synthesis requires Claude Code's agent dispatch
+capability. On Codex CLI or Gemini CLI, use **/relay-plan**
+instead — the single-pass deep-reasoning approach is the
+equivalent on your platform."*
+Do not proceed with the 5-agent dispatch.
 
 0. Read the target item file(s) and verify an `## Analysis` section exists
    (from `/relay-analyze`). If no analysis exists, STOP and tell the user:
