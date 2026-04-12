@@ -229,7 +229,7 @@ Write the file using this structure:
     *Group:* [Group Name or Ungrouped]
     *Exercised:* YYYY-MM-DD by /relay-exercise-run
     *Session Status:* draft
-    *Findings:* N draft / 0 filed / 0 skipped
+    *Findings:* N draft / 0 filed / 0 kept / 0 skipped
 
     ## Context
 
@@ -317,7 +317,13 @@ capability:
   (e.g., `exercise/create-user.md`)
 - `Findings Filed` → clear to `—` on re-run. On first run, already `—`.
 
-Update the Coverage Summary table counts.
+Update the Coverage Summary table counts: if the capability's previous
+status was `mapped`, decrement `mapped` by 1 and increment `exercised`
+by 1. If the previous status was `stale`, decrement `stale` by 1 and
+increment `exercised` by 1. If the previous status was `filed` (re-run
+mode), decrement `filed` by 1 and increment `exercised` by 1. If the
+previous status was `exercised` (re-run mode), no net change to counts
+(the capability was already counted as exercised).
 
 Append a Refresh Log entry:
 - First run: `**YYYY-MM-DD** — /relay-exercise-run: exercised

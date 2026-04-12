@@ -196,8 +196,10 @@ After editing, re-display the edited version and return to the prompt
 
 5. **Update the exercise file's summary header** — recount all finding
    Status fields and update the `*Findings:*` line at the top of the file:
-   `*Findings:* <draft count> draft / <filed+kept count> filed / <skipped count> skipped`
-   Count `filed:` and `kept:` statuses together as "filed" in the summary.
+   `*Findings:* <draft count> draft / <filed count> filed / <kept count> kept / <skipped count> skipped`
+   Count each status type separately. `filed:` counts findings routed to
+   issues or brainstorms (with a path to .relay/issues/ or .relay/features/).
+   `kept:` counts notes retained in the exercise file.
 
 6. **Write the exercise file to disk immediately.**
    Do NOT wait for the walk to finish. This ensures the decision
@@ -341,7 +343,8 @@ Then update the hub row in `.relay/relay-exercise.md`:
    paths created during this and any prior filing sessions for this
    exercise. Format: `issues/<slug>.md, features/<slug>_brainstorm.md`
    Collect these by scanning the exercise file's Status fields for all
-   `filed:` entries.
+   `filed:` entries. If zero `filed:` entries exist (all findings were
+   kept as notes or skipped), write `—` in the Findings Filed column.
 5. **Coverage Summary** — recompute counts: decrement `exercised` by 1,
    increment `filed` by 1.
 6. **Refresh Log** — append:

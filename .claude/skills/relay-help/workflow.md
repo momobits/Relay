@@ -93,6 +93,7 @@ Check if any items are in-progress (have pipeline sections appended):
   - Has ## Analysis but no ## Implementation Plan → "Resume with **/relay-plan** (single-pass) or **/relay-superplan** (5-agent synthesis) on [item]"
   - Has ## Implementation Plan but no ## Adversarial Review → "Resume with **/relay-review** on [item]"
   - Has ## Adversarial Review with verdict REJECTED → "Plan was rejected. Resume with **/relay-plan** or **/relay-superplan** on [item] to revise"
+  - Has ## Adversarial Review with verdict DEFERRED → "This item was deferred to a later phase. Skip to the next item, or run **/relay-analyze** on the next phase."
   - Has ## Adversarial Review (APPROVED/APPROVED WITH CHANGES) but no ## Implementation Guidelines → "Ready to implement [item]. Say **'implement the plan'**"
   - Has ## Implementation Guidelines but no ## Verification Report → "Implementation may be done. Resume with **/relay-verify** on [item]"
   - Has ## Verification Report with verdict INCOMPLETE or HAS ISSUES → "Verification found issues. Resume with **/relay-verify** on [item]"

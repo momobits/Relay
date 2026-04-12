@@ -49,13 +49,13 @@ Create this file to track the installed Relay version:
 - /relay-help recommends exercise skills based on project state
 - /relay-order notes that exercise files are not ordered work (19 skills total)
 
-### 3.0.0 — Cross-platform support
+### 3.0.0 — Cross-platform support + superplan
 - Skills install to both `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex CLI, Gemini CLI)
 - Installer generates AGENTS.md and GEMINI.md context files
 - Workflow language updated for platform-agnostic tool references
 - Added `/relay-superplan` (16 skills total)
 
-### 2.0.2 — Skills-based workflow
+### 2.0.0 — Skills-based workflow
 - Converted 14 prompts to skills plus new `/relay-help` navigation skill (15 total)
 - Added `/relay-help` navigation skill
 - Skills are auto-discovered — no more `@file.md` references
@@ -95,7 +95,14 @@ Skills are in your platform's skill directory:
 
 ### Status files
 
-Create these initial status files:
+Create these initial status files. These are generated artifacts —
+overwriting existing copies is safe.
+If `.relay/relay-status.md` already exists, overwrite it and log:
+*"Overwriting relay-status.md (generated artifact — run /relay-scan
+to refresh)."*
+If `.relay/relay-ordering.md` already exists, overwrite it and log:
+*"Overwriting relay-ordering.md (generated artifact — run /relay-order
+to refresh)."*
 
 **File: .relay/relay-status.md**
 
@@ -147,8 +154,23 @@ No outstanding items. Run the discovery skills first to populate .relay/issues/ 
 
 **File: .relay/relay-config.md**
 
-Create this file with the template structure below. Content will be
-populated in Phase 2.
+Check if `.relay/relay-config.md` already exists.
+
+- If the file exists and has content beyond the
+  `<!-- Populated by Phase 2 scan -->` placeholders
+  (i.e., at least one section has been filled in by
+  Phase 2 or manually edited), skip creation and report:
+  *"relay-config.md exists with project-specific
+  settings — leaving untouched."*
+  Skip Phase 2's relay-config.md population steps as
+  well — the file already has content.
+- If the file exists but every section still contains
+  only `<!-- Populated by Phase 2 scan -->` placeholders,
+  skip creation and report: *"relay-config.md exists as
+  blank template — Phase 2 will populate it."*
+- If the file does not exist, create it with the
+  template structure below. Content will be populated
+  in Phase 2.
 
 # Relay Config
 
