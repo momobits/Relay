@@ -7,9 +7,11 @@ finding, the user decides: file as an issue, seed as a brainstorm, keep as
 a note, or skip. Each decision is persisted to disk immediately, so
 sessions can be abandoned and resumed without losing work.
 
-The filer does NOT archive exercise files. Exercise files stay in
-`.relay/exercise/` until `/relay-resolve` archives them as part of the
-single-archival sweep.
+The filer does NOT archive exercise files when downstream work exists
+(issues or brainstorms were filed). Those exercise files stay in
+`.relay/exercise/` until `/relay-resolve` archives them. When no
+downstream work exists (all notes/skipped or zero findings), the filer
+archives the exercise file directly in Phase 4.
 
 ## Phase 1 — Arg resolution + exercise file load
 
@@ -28,11 +30,19 @@ Parse the user's argument to determine what to walk:
 | `/relay-exercise-file` (no args) | Find the next capability in the hub with status `exercised` and draft findings; walk it |
 
 **No-args resolution:** if no argument is given, read
-`.relay/relay-exercise.md`, find the first capability with status
-`exercised` (top to bottom, groups in order), verify the exercise file
-has at least one `draft` finding, and use that. If no capability has
-status `exercised`, report: *"No exercised capabilities with draft
-findings. Run `/relay-exercise-run` first."*
+`.relay/relay-exercise.md` and search for the next capability to act
+on (top to bottom, groups in order):
+1. First, look for a capability with status `exercised` whose exercise
+   file has at least one `draft` finding. If found, use that capability
+   and proceed to the walk.
+2. If none found, look for a capability with status `exercised` whose
+   exercise file has zero TOTAL findings (no `### Finding N:` blocks)
+   or whose exercise file has findings but all are non-draft (all
+   `filed:`, `kept:`, or `skipped`). If found, use that capability —
+   the zero-draft handling in the walk list section below will route
+   to Phase 4.
+3. If neither found, report: *"No exercised capabilities with pending
+   work. Run `/relay-exercise-run` first."*
 
 **Locate the exercise file:**
 - Look for `.relay/exercise/<capability>.md`
@@ -56,9 +66,28 @@ Build the walk list by filtering findings:
 - Include only findings with `**Status:** draft`
 - Apply any classification or severity filter from the args
 - If a specific finding number `<N>` was given, include only that finding
-- If the filter matches zero draft findings, report:
-  *"No draft findings matching `<filter>`. Nothing to walk."*
-  and exit cleanly.
+- If the filter matches zero draft findings:
+  - If the exercise file has zero TOTAL findings (no `### Finding N:`
+    blocks in the `## Findings` section):
+    Read the hub row for this capability. If hub Status is `exercised`,
+    this exercise produced no findings to file. Prompt the user:
+    *"Exercise `<capability>` has no findings. Mark as complete and
+    archive? [y/n]"*
+    On `y`: skip Phases 2–3, proceed directly to Phase 4. Phase 4
+    will detect zero drafts and run the completion path, including
+    direct archival (step 7).
+    On `n`: exit cleanly.
+  - If the exercise file HAS findings (at least one `### Finding N:`
+    block) but all have non-draft statuses (`filed:`, `kept:`, or
+    `skipped`), AND the hub row Status is `exercised`:
+    The walk was completed in a prior session but Phase 4 never ran
+    (session interruption). Proceed directly to Phase 4 — no user
+    prompt needed since all decisions were already made.
+    Log: *"All findings already processed. Completing hub update..."*
+  - Otherwise (hub Status is not `exercised`, or the filter was a
+    specific subset that produced no matches): report:
+    *"No draft findings matching `<filter>`. Nothing to walk."*
+    and exit cleanly.
 
 **Confirm the walk:**
 Show the user what's about to happen:
@@ -337,8 +366,8 @@ Then update the hub row in `.relay/relay-exercise.md`:
 
 1. **Status** → `filed`
 2. **Last Updated** → today (YYYY-MM-DD)
-3. **Exercise File** → `exercise/<capability>.md` (unchanged — file is
-   still active, awaiting `/relay-resolve`'s archival)
+3. **Exercise File** → `exercise/<capability>.md` (unchanged for now —
+   may be updated to archive path in step 7 below)
 4. **Findings Filed** → comma-separated list of the new issue/brainstorm
    paths created during this and any prior filing sessions for this
    exercise. Format: `issues/<slug>.md, features/<slug>_brainstorm.md`
@@ -349,11 +378,47 @@ Then update the hub row in `.relay/relay-exercise.md`:
    increment `filed` by 1.
 6. **Refresh Log** — append:
    `**YYYY-MM-DD** — /relay-exercise-file: filed \`<capability>\`.
-   N issues / M brainstorm seeds / K notes kept.
-   Exercise file remains active pending downstream resolution.`
+   N issues / M brainstorm seeds / K notes kept.`
+7. **Direct archival (zero downstream items)** — if the Findings Filed
+   column is `—` (zero `filed:` entries — all findings were kept as
+   notes, skipped, or the exercise had zero findings), there are no
+   downstream issues or brainstorms for `/relay-resolve` to trigger on.
+   Archive the exercise file directly:
 
-The filer NEVER moves the exercise file between directories. All file
-movement is owned by `/relay-resolve`.
+   i.   Move the exercise file:
+        `.relay/exercise/<capability>.md` →
+        `.relay/archive/exercise/<capability>.md`
+
+        If the exercise file has a timestamped re-run filename
+        (e.g., `<capability>-YYYY-MM-DD.md`), preserve the timestamp
+        in the archive filename.
+
+        Log: "Archived exercise: exercise/<capability>.md →
+              archive/exercise/<capability>.md"
+
+   ii.  In the newly-archived exercise file, rewrite any
+        `**Status:** kept: exercise/<capability>.md` lines to
+        `**Status:** kept: archive/exercise/<capability>.md`.
+
+   iii. Update the hub row:
+        - `Exercise File` column: `exercise/<capability>.md` →
+          `archive/exercise/<capability>.md`
+
+   iv.  Append a Refresh Log entry:
+        `**YYYY-MM-DD** — /relay-exercise-file: archived exercise
+         \`<capability>\` directly. No downstream items to track.`
+
+   If Findings Filed is NOT `—` (at least one `filed:` entry exists),
+   skip this step. The exercise file stays active for `/relay-resolve`'s
+   single-archival sweep. Append to step 6's Refresh Log:
+   `Exercise file remains active pending downstream resolution.`
+
+The filer does NOT archive exercise files **unless there is no
+downstream work to track** (zero `filed:` entries after completion,
+or zero findings). In that case, `/relay-resolve` has no trigger to
+act, so the filer archives directly. When at least one finding was
+filed as an issue or brainstorm, all archival remains
+`/relay-resolve`'s responsibility.
 
 ## Phase 5 — Summary + navigation
 
@@ -368,12 +433,19 @@ Report what was filed this session:
 Recommend next step:
 
 - **If all findings are processed** (no drafts left):
-  *"`<capability>` is fully filed. Run `/relay-scan` and `/relay-order`
-  to integrate the new issues and brainstorms into the backlog.
-  For brainstorm seeds, run `/relay-brainstorm` when you're ready to
-  develop them into full features. The exercise file will be archived
-  automatically by `/relay-resolve` once all downstream items from
-  this exercise have been resolved."*
+  - **If at least one finding was filed** (issues or brainstorms
+    created):
+    *"`<capability>` is fully filed. Run `/relay-scan` and `/relay-order`
+    to integrate the new issues and brainstorms into the backlog.
+    For brainstorm seeds, run `/relay-brainstorm` when you're ready to
+    develop them into full features. The exercise file will be archived
+    automatically by `/relay-resolve` once all downstream items from
+    this exercise have been resolved."*
+  - **If zero findings were filed** (all notes/skipped or zero
+    findings):
+    *"`<capability>` is complete and archived — no downstream items to
+    track. Run `/relay-scan` and `/relay-order` to refresh project
+    status."*
 
 - **If drafts remain:**
   *"Session saved. Run `/relay-exercise-file <capability>` again to
@@ -393,8 +465,11 @@ When finished, tell the user:
   lose no work
 - The filer reads `/relay-new-issue` and `/relay-brainstorm` workflow.md
   at runtime, so it automatically tracks format changes in those skills
-- The filer does NOT archive exercise files or rewrite paths — that is
-  entirely `/relay-resolve`'s responsibility (see Feature 1D)
+- The filer archives exercise files directly ONLY when there are no
+  downstream items to track (zero `filed:` entries — all notes/skipped
+  or zero findings). When at least one finding was filed as an issue
+  or brainstorm, all archival remains `/relay-resolve`'s responsibility
+  (see Feature 1D)
 - Slug collision detection spans both active and archived directories
   (`.relay/issues/`, `.relay/archive/issues/`, `.relay/features/`,
   `.relay/archive/features/`) to prevent confusion during later archival

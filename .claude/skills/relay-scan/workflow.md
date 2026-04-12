@@ -46,6 +46,24 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
 
    See [relay-exercise.md](relay-exercise.md) for the full capability map.
 
+   Then validate exercise file references: for each hub row with
+   Status `exercised` or `filed`, read the `Exercise File` column
+   and verify the path resolves to an existing file:
+   - Active path (`exercise/<capability>.md`): check
+     `.relay/exercise/<capability>.md`
+   - Archive path (`archive/exercise/<capability>.md`): check
+     `.relay/archive/exercise/<capability>.md`
+
+   For each broken reference (path does not resolve to an existing
+   file), add a warning line to the exercise pipeline section in
+   relay-status.md:
+   *"Exercise file missing for `<capability>` — re-run
+   `/relay-exercise-run <capability>`."*
+
+   If any broken references are found, append a count to the
+   exercise pipeline summary:
+   `- Broken references: <count> (see warnings above)`
+
 7. Flag any items in issues/ or features/ that are fully RESOLVED but haven't
    been moved to implemented/ yet — these need resolution docs created
    (use the process in /relay-resolve)
