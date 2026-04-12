@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "3.0.0";
+const VERSION = "3.1.0";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const AGENTS_SKILLS_DIR = ".agents/skills";
 const MARKER_START = "<!-- relay-workflow:start -->";
@@ -15,6 +15,9 @@ const RELAY_SKILLS = [
   "relay-cleanup",
   "relay-design",
   "relay-discover",
+  "relay-exercise",
+  "relay-exercise-file",
+  "relay-exercise-run",
   "relay-help",
   "relay-new-issue",
   "relay-notebook",
@@ -59,6 +62,9 @@ and what's next. Skills are in \`.agents/skills/relay-*/\`.
 | /relay-brainstorm | Explore a feature idea |
 | /relay-design | Design features from brainstorm |
 | /relay-cleanup | Archive stale brainstorms |
+| /relay-exercise | Map project capabilities for stress-testing |
+| /relay-exercise-run | Execute scenarios against a capability |
+| /relay-exercise-file | Walk findings and file issues or brainstorm seeds |
 | /relay-analyze | Validate item before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |
@@ -71,6 +77,8 @@ and what's next. Skills are in \`.agents/skills/relay-*/\`.
 Start with \`/relay-setup\`, then \`/relay-help\`.
 
 Workflow: \`/relay-analyze\` → \`/relay-plan\` or \`/relay-superplan\` → \`/relay-review\` → implement → \`/relay-verify\` → \`/relay-notebook\` → \`/relay-resolve\`
+
+Exercise flow: \`/relay-exercise\` → \`/relay-exercise-run\` → \`/relay-exercise-file\` → (filed items flow into normal code pipeline)
 ${MARKER_END}`;
 }
 

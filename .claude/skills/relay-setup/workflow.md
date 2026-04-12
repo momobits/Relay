@@ -10,10 +10,12 @@ Create the following directory structure:
   .relay/features/
   .relay/implemented/
   .relay/notebooks/
+  .relay/exercise/
   .relay/archive/
   .relay/archive/issues/
   .relay/archive/features/
   .relay/archive/notebooks/
+  .relay/archive/exercise/
 
 ### Version file
 
@@ -29,12 +31,23 @@ Create this file to track the installed Relay version:
 
 | Field | Value |
 |-------|-------|
-| **Version** | 3.0.0 |
+| **Version** | 3.1.0 |
 | **Installed** | [YYYY-MM-DD] |
 | **Source** | https://github.com/momobits/Relay |
 | **Format** | skills |
 
 ## Changelog
+
+### 3.1.0 — Exercise pipeline
+- Three new skills: /relay-exercise, /relay-exercise-run, /relay-exercise-file
+- /relay-resolve amendment: owns exercise file archival (single-archival sweep)
+- New data layer: .relay/relay-exercise.md hub, .relay/exercise/, .relay/archive/exercise/
+- relay-config.md gains Launch Recipe section (added on first exercise run)
+- /relay-brainstorm amended to detect seeded brainstorms from the filer
+- /relay-cleanup amended to update hub back-references when archiving seeded brainstorms
+- /relay-scan surfaces exercise pipeline state in relay-status.md
+- /relay-help recommends exercise skills based on project state
+- /relay-order notes that exercise files are not ordered work (19 skills total)
 
 ### 3.0.0 — Cross-platform support
 - Skills install to both `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex CLI, Gemini CLI)
@@ -68,6 +81,9 @@ Skills are in your platform's skill directory:
 | /relay-brainstorm | Explore feature ideas |
 | /relay-design | Design features from brainstorm |
 | /relay-cleanup | Archive stale brainstorms |
+| /relay-exercise | Map project capabilities |
+| /relay-exercise-run | Execute scenarios |
+| /relay-exercise-file | File findings |
 | /relay-analyze | Validate before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |

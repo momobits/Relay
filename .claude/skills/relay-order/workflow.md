@@ -49,3 +49,4 @@ When finished, tell the user:
 - Dependencies matter: e.g., a feature may require an issue to be resolved first
 - Feature files from /relay-design carry explicit Development Order metadata — use it
 - Brainstorm files are excluded — feature files carry their own Development Order and Dependencies metadata from /relay-design
+- Exercise files (.relay/exercise/*.md) are NOT ordered work. They represent in-progress review sessions, not prioritized tasks. The issues and brainstorm seeds that result from /relay-exercise-file DO flow into ordering via the normal issue/feature mechanisms.

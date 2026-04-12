@@ -37,6 +37,32 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
    - If any individual feature files in .relay/features/ reference this
      brainstorm (check the *Brainstorm:* metadata line), warn the user
      that orphaned feature files exist and ask how to handle them.
+   - Exercise back-reference update (conditional):
+     Check for a `*Source:*` header line matching
+     `*Source: exercise/<capability>.md finding <N>*` or
+     `*Source: archive/exercise/<capability>.md finding <N>*`.
+
+     If present, this brainstorm was seeded from an exercise. Update
+     back-references before completing the archival:
+
+     a. In .relay/relay-exercise.md, find the row for <capability> and
+        update its `Findings Filed` column: rewrite
+        `features/<slug>_brainstorm.md` to
+        `archive/features/<slug>_brainstorm.md`.
+
+     b. In the source exercise file (read its path from the `*Source:*`
+        line — may be .relay/exercise/<capability>.md or
+        .relay/archive/exercise/<capability>.md), find the finding with
+        `Status: filed: features/<slug>_brainstorm.md` and rewrite to
+        `Status: filed: archive/features/<slug>_brainstorm.md`.
+
+     Log each rewrite:
+       [relay-cleanup] Rewrote back-reference in .relay/relay-exercise.md: features/X_brainstorm.md → archive/features/X_brainstorm.md
+
+     Idempotency: if a path is already in archive form, skip the rewrite.
+
+     Note: this handles brainstorm archival only. Issue back-references
+     and exercise file archival are owned by /relay-resolve (step 5).
 
 4. Report what was archived and what was left in place.
 

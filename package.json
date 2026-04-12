@@ -1,6 +1,6 @@
 {
   "name": "relay-workflow",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Persistent memory for AI coding workflows — relay work between humans, Claude Code, Codex CLI, and Gemini CLI. Memory grows with every session so context is never lost, no matter who picks up next",
   "main": "tools/cli.js",
   "bin": {

@@ -115,6 +115,18 @@ Check if any items are in-progress (have pipeline sections appended):
 - Features DESIGNED but not in ordering → "Run **/relay-scan** then **/relay-order** to integrate features into the work plan"
 - Brainstorms with BRAINSTORMING or READY FOR DESIGN that are older than 7 days → also mention: "You have stale brainstorms. Run **/relay-cleanup** to archive abandoned ones."
 
+**Exercise pipeline state** (check alongside the above conditions — these are additions, not replacements):
+- `.relay/relay-exercise.md` does not exist AND project has source code
+  → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** to build a capability map, or continue with the standard discovery flow via **/relay-discover**."*
+- Hub exists AND has capabilities with status `mapped` (not yet exercised)
+  → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time, or **/relay-exercise-run <group>** to sweep a group."*
+- Active exercise files exist in .relay/exercise/ with `draft` findings
+  → *"N exercise files have unprocessed findings. Run **/relay-exercise-file <capability>** to walk them, or target a filter (e.g., **<capability> issues**)."*
+- Hub has capabilities with status `stale`
+  → *"N capabilities marked stale (project has changed since last map). Run **/relay-exercise** to refresh the map."*
+
+Priority when multiple exercise conditions apply: draft findings first (active work), then stale refresh, then new mapping. Exercise conditions coexist with issue/feature conditions — present both if applicable.
+
 ### Step 5 — Present recommendations
 
 - Show the current state summary (items count, what's in progress)
@@ -132,6 +144,9 @@ Check if any items are in-progress (have pipeline sections appended):
 | **/relay-brainstorm** | Explore a new feature idea |
 | **/relay-design** | Design features from brainstorm |
 | **/relay-cleanup** | Archive abandoned brainstorms |
+| **/relay-exercise** | Map project capabilities for stress-testing |
+| **/relay-exercise-run** | Execute scenarios against a capability |
+| **/relay-exercise-file** | Walk findings and file issues or brainstorm seeds |
 | **/relay-scan** | Update project status |
 | **/relay-order** | Prioritize work |
 | **/relay-analyze** | Validate item before implementation |
@@ -146,9 +161,10 @@ Check if any items are in-progress (have pipeline sections appended):
 ## Workflow Paths
 
 ```
-Specific issue  →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Systematic scan →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Feature idea    →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Specific issue     →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Systematic scan    →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Feature idea       →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Exercise session   →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → ... → /relay-resolve
 ```
 
 ## Code Pipeline

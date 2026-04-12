@@ -34,7 +34,7 @@ The bigger the project, the worse it gets. You repeat yourself, re-explain archi
 
 Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **16 workflow skills** cover the full lifecycle: discover, brainstorm, design, analyze, plan, review, implement, verify, resolve
+- **19 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
 - **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
 - **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
 - **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
@@ -105,35 +105,36 @@ Relay uses **skills** — each workflow step is a skill you invoke with `/relay-
 ### Workflow Categories
 
 ```
-PREPARE          DISCOVERY          FEATURE              CODE
-(status)         (find work)        (design work)        (do work)
+PREPARE       DISCOVERY        FEATURE          EXERCISE         CODE
+(status)      (find work)      (design work)    (stress-test)    (do work)
 
-/relay-scan      /relay-discover    /relay-brainstorm    /relay-analyze
-  |                (scan for          |                      |
-/relay-order       issues)        /relay-design          /relay-plan
-                                                        or /relay-superplan
-                 /relay-new-issue     |                      |
-                   (file item)   /relay-cleanup          /relay-review
-                                   (archive stale            |
-                                    brainstorms)         *implement*
-                                                             |
-                                                         /relay-verify
-                                                             |
-                                                         /relay-notebook
-                                                             |
-                                                         /relay-resolve
+/relay-scan   /relay-discover  /relay-brainstorm /relay-exercise  /relay-analyze
+  |             (scan for        |                 (map)              |
+/relay-order    issues)        /relay-design     /relay-exercise-run  /relay-plan
+                                                   (execute)       or /relay-superplan
+               /relay-new-issue   |                    |                |
+                 (file item)   /relay-cleanup  /relay-exercise-file  /relay-review
+                                 (archive stale   (file findings)        |
+                                  brainstorms)         |             *implement*
+                                                  (feeds into            |
+                                                   issues/features)  /relay-verify
+                                                                         |
+                                                                     /relay-notebook
+                                                                         |
+                                                                     /relay-resolve
 ```
 
 The flow between categories: discovery/feature skills create docs → prepare skills prioritize them → code skills implement them. Each skill tells you what to run next.
 
 ### Workflow Paths
 
-There are three entry points depending on what you're doing:
+There are four entry points depending on what you're doing:
 
 ```
-Specific issue  →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Systematic scan →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Feature idea    →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Specific issue     →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Systematic scan    →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Feature idea       →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Exercise session   →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 ```
 
 All paths converge on the same **code pipeline** for implementation, ensuring every change gets the same rigor regardless of how it was discovered.
@@ -169,6 +170,14 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **/relay-brainstorm** | Interactive exploration of a feature idea. Asks clarifying questions, explores codebase, presents approaches with trade-offs. Creates a brainstorm file. |
 | **/relay-design** | Takes the brainstorm and designs each feature in detail. Creates individual feature files with architecture, interfaces, data flow, and integration points. |
 | **/relay-cleanup** | Archives abandoned brainstorm files that were never completed through `/relay-design`. |
+
+### Exercise — Stress-testing real capabilities
+
+| Skill | Purpose |
+|-------|---------|
+| **/relay-exercise** | Map project capabilities. Produces `.relay/relay-exercise.md` hub with identity, capabilities, chains, and coverage. |
+| **/relay-exercise-run** | Execute realistic scenarios against a capability (or a group). Captures observations as structured findings. |
+| **/relay-exercise-file** | Walk findings with the user, file them as issues or brainstorm seeds, update the hub. |
 
 ### Code — Implementation pipeline
 
@@ -255,6 +264,30 @@ For each feature, in order:
 
 ---
 
+## Walkthrough: Exercising a Capability
+
+### Step 1: Map (`/relay-exercise`)
+
+Scan the project (docs + source), identify its capabilities, confirm identity with the user, and produce `.relay/relay-exercise.md` — the master map. Capabilities are grouped and linked by context chains reflecting how they are actually used.
+
+### Step 2: Run (`/relay-exercise-run`)
+
+Pick a capability (no args → next uncovered), execute realistic scenarios against the real application, capture observations as structured findings classified as would-be-issues, would-be-brainstorms, or notes. Each scenario runs with prerequisite state established from context chains.
+
+### Step 3: File (`/relay-exercise-file`)
+
+Walk the findings with the user. Each decision is persisted immediately. Would-be-issues become files in `.relay/issues/`. Would-be-brainstorms become seeded brainstorms in `.relay/features/` with partial content for `/relay-brainstorm` to develop later. Notes stay in the exercise file as preserved context.
+
+### Step 4: Integrate
+
+Run `/relay-scan` and `/relay-order` to integrate the new issues and brainstorms into the backlog. From here, filed issues follow the standard code pipeline (see *"Fixing a Bug"*). Seeded brainstorms can be developed further with `/relay-brainstorm` when you're ready.
+
+### Step 5: Auto-archival
+
+When every issue and brainstorm that came from an exercise has been resolved through `/relay-resolve`, the exercise file is automatically archived to `.relay/archive/exercise/`. The full exercise history — scenarios, findings, outcomes — is preserved permanently.
+
+---
+
 ## Lifecycle of an Item
 
 Every issue or feature follows the same documentation lifecycle. Each phase appends to the item file, building a complete record:
@@ -320,6 +353,9 @@ your-project/
 │       ├── relay-scan/           # Generate status
 │       ├── relay-order/          # Prioritize work
 │       ├── relay-discover/       # Scan for issues
+│       ├── relay-exercise/       # Map capabilities
+│       ├── relay-exercise-file/  # File findings
+│       ├── relay-exercise-run/   # Execute scenarios
 │       ├── relay-new-issue/      # File a specific issue
 │       ├── relay-brainstorm/     # Explore feature ideas
 │       ├── relay-design/         # Design features
@@ -346,14 +382,17 @@ your-project/
 │   ├── relay-config.md           # Project-specific settings
 │   ├── relay-status.md           # Generated — current state
 │   ├── relay-ordering.md         # Generated — prioritized work
+│   ├── relay-exercise.md         # Exercise pipeline hub (created by /relay-exercise)
 │   ├── issues/                   # Active bug/gap reports
 │   ├── features/                 # Active feature designs and brainstorms
 │   ├── implemented/              # Resolution docs for completed work
 │   ├── notebooks/                # Verification notebooks
+│   ├── exercise/                 # Active exercise sessions
 │   └── archive/
 │       ├── issues/               # Archived (resolved) issues
 │       ├── features/             # Archived (resolved) features
-│       └── notebooks/            # Archived verification notebooks
+│       ├── notebooks/            # Archived verification notebooks
+│       └── exercise/             # Archived exercise sessions
 ```
 
 ---

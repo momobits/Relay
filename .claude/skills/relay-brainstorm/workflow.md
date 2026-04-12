@@ -6,6 +6,35 @@ I want to explore a feature idea: [DESCRIPTION]
 
 Guide me through brainstorming this feature interactively.
 
+0. Check for existing in-progress brainstorms:
+
+   Scan .relay/features/*_brainstorm.md for files with status BRAINSTORMING
+   (excluding READY FOR DESIGN, DESIGN COMPLETE, COMPLETE).
+
+   If any exist, present them to the user before starting fresh:
+
+     "Existing brainstorms in progress:
+       1. outline_templates_brainstorm.md (seeded from exercise outline-chapter)
+       2. auth_overhaul_brainstorm.md
+
+     Continue one of these, or start a new brainstorm? [1 / 2 / new]"
+
+   Show at most 10 entries. If more exist, truncate with:
+   "... and N more. Pass a specific file as an argument to load it directly."
+
+   To detect seeded brainstorms, look for the `*Source:*` header line
+   with the pattern `*Source: exercise/<capability>.md finding <N>*` or
+   `*Source: archive/exercise/<capability>.md finding <N>*` — annotate
+   the list entry with "(seeded from exercise <capability>)".
+
+   - On selecting an existing brainstorm: load it as the working file,
+     read the Goal/Context (and if seeded, read the referenced exercise
+     file for additional context), and continue development from where
+     it left off. Skip step 4's "Ask before CREATING the file for the
+     first time" prompt — the file already exists.
+   - On `new`: proceed with the existing workflow (steps 1 through 6
+     unchanged).
+
 1. Understand the idea:
    - Ask clarifying questions about what I'm trying to achieve
    - Don't assume scope — let me define it through conversation

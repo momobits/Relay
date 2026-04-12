@@ -27,6 +27,25 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    - If a previously archived item has regressed, flag it prominently
 6. Write .relay/relay-status.md with appropriate columns for each section.
    Update the `*Last generated:*` date header to today's date (YYYY-MM-DD).
+
+   Exercise pipeline state (conditional):
+
+   Check if .relay/relay-exercise.md exists. If not, skip this sub-section
+   entirely (the exercise pipeline is not in use).
+
+   Otherwise, read the hub's Coverage Summary table and add a new section
+   to relay-status.md after the `## Active Features` section and before
+   `## Implemented`:
+
+   ## Exercise Pipeline — .relay/relay-exercise.md
+
+   - Mapped: <count>
+   - Exercised: <count> (awaiting filing via /relay-exercise-file)
+   - Filed: <count> (awaiting downstream resolution)
+   - Stale: <count>
+
+   See [relay-exercise.md](relay-exercise.md) for the full capability map.
+
 7. Flag any items in issues/ or features/ that are fully RESOLVED but haven't
    been moved to implemented/ yet — these need resolution docs created
    (use the process in /relay-resolve)
@@ -70,6 +89,21 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    | Item | File | Stage | Next Step |
    |------|------|-------|-----------|
    | ...  | ...  | ...   | Run /...  |
+
+   For brainstorm files created by the exercise filer (check for a
+   `*Source:*` header matching `*Source: exercise/<capability>.md finding <N>*`
+   or `*Source: archive/exercise/<capability>.md finding <N>*`), annotate
+   the Next Step column with "(seeded from exercise <capability>)".
+
+   Also, for each active exercise file in .relay/exercise/*.md, check
+   if it has any findings with `Status: draft`. If yes, add rows to
+   the In-Progress Work section under a new sub-table:
+
+   ### Exercise Pipeline
+
+   | Capability | Exercise File | Drafts Remaining | Next Step |
+   |------------|---------------|------------------|-----------|
+   | <name>     | exercise/<name>.md | <count>    | Run /relay-exercise-file |
 
 10. Staleness detection:
     For every in-progress item (from steps 8 and 9), compare the most
