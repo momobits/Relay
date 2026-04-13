@@ -294,48 +294,48 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│  .relay/issues/some_bug.md (or .relay/features/...)      │
-│                                                          │
-│  # Original Issue                                        │  ← /relay-discover or /relay-new-issue
-│  Problem, impact, proposed fix, affected files           │
-│                                                          │
-│  ---                                                     │
-│  ## Analysis                                             │  ← /relay-analyze
-│  Validation, root cause, blast radius, approach          │
-│                                                          │
-│  ---                                                     │
-│  ## Implementation Plan                                  │  ← /relay-plan or /relay-superplan
-│  Steps with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK            │
-│                                                          │
-│  ---                                                     │
-│  ## Adversarial Review                                   │  ← /relay-review
-│  Issues found, edge cases, regression risk, verdict      │
-│                                                          │
-│  ---                                                     │
-│  ## Implementation Guidelines                            │  ← /relay-review (APPROVED)
-│  Step-by-step execution rules, deviation logging         │
-│                                                          │
-│  ---                                                     │
-│  ## Verification Report                                  │  ← /relay-verify
-│  Step-by-step status table, test results, verdict        │
-│                                                          │
-│  ---                                                     │
-│  ## Post-Implementation Fix #1 (if needed)               │  ← /relay-notebook
-│  Problem, plan, rollback for issues found in tests       │
-│                                                          │
+│  .relay/issues/some_bug.md (or .relay/features/...)       │
+│                                                           │
+│  # Original Issue                                         │  ← /relay-discover or /relay-new-issue
+│  Problem, impact, proposed fix, affected files            │
+│                                                           │
+│  ---                                                      │
+│  ## Analysis                                              │  ← /relay-analyze
+│  Validation, root cause, blast radius, approach           │
+│                                                           │
+│  ---                                                      │
+│  ## Implementation Plan                                   │  ← /relay-plan or /relay-superplan
+│  Steps with WHAT/HOW/WHY/RISK/VERIFY/ROLLBACK             │
+│                                                           │
+│  ---                                                      │
+│  ## Adversarial Review                                    │  ← /relay-review
+│  Issues found, edge cases, regression risk, verdict       │
+│                                                           │
+│  ---                                                      │
+│  ## Implementation Guidelines                             │  ← /relay-review (APPROVED)
+│  Step-by-step execution rules, deviation logging          │
+│                                                           │
+│  ---                                                      │
+│  ## Verification Report                                   │  ← /relay-verify
+│  Step-by-step status table, test results, verdict         │
+│                                                           │
+│  ---                                                      │
+│  ## Post-Implementation Fix #1 (if needed)                │  ← /relay-notebook
+│  Problem, plan, rollback for issues found in tests        │
+│                                                           │
 └───────────────────────────────────────────────────────────┘
                           │
                           ▼  (/relay-resolve)
 ┌───────────────────────────────────────────────────────────┐
-│  .relay/archive/issues/some_bug.md                       │
-│  > ARCHIVED — See implementation doc                     │
-│  [full history preserved]                                │
+│  .relay/archive/issues/some_bug.md                        │
+│  > ARCHIVED — See implementation doc                      │
+│  [full history preserved]                                 │
 ├───────────────────────────────────────────────────────────┤
-│  .relay/implemented/some_bug.md                          │
-│  Summary, files modified, verification, caveats          │
+│  .relay/implemented/some_bug.md                           │
+│  Summary, files modified, verification, caveats           │
 ├───────────────────────────────────────────────────────────┤
-│  .relay/archive/notebooks/some_bug.ipynb                 │
-│  Executable verification proof                           │
+│  .relay/archive/notebooks/some_bug.ipynb                  │
+│  Executable verification proof                            │
 └───────────────────────────────────────────────────────────┘
 ```
 
