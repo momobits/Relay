@@ -8,8 +8,13 @@ Based on the analysis, create a detailed implementation plan.
    (from /relay-analyze). If no analysis exists, STOP and tell the user:
    "No analysis found in the item file. Run **/relay-analyze** first."
 
-   Freshness check: read the *Analyzed:* date in the Analysis section.
-   If the analysis is more than 7 days old, WARN the user:
+   If multiple ## Analysis sections exist (from a re-analysis after
+   rejection), use the most recent one (identified by the latest
+   *Analyzed:* date). Earlier analyses may contain outdated findings.
+
+   Freshness check: read the *Analyzed:* date in the most recent
+   Analysis section. If the analysis is more than 7 days old, WARN
+   the user:
    "Analysis was done on [date] — the codebase may have changed since then.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
@@ -75,7 +80,8 @@ Requirements for the plan:
 7. Persist the plan in each relevant issue/feature file in .relay/issues/ or
    .relay/features/. If an Implementation Plan section already exists (from a
    previous rejected plan), REPLACE it with the revised plan — do not append
-   a second copy. If no plan exists yet, APPEND after the Analysis section.
+   a second copy. If no plan exists yet, APPEND after the last
+   Analysis section.
    Add a horizontal rule separator, then these sections:
 
    ---

@@ -26,8 +26,13 @@ Do not proceed with the 5-agent dispatch.
    (from `/relay-analyze`). If no analysis exists, STOP and tell the user:
    "No analysis found in the item file. Run **/relay-analyze** first."
 
-   Freshness check: read the *Analyzed:* date in the Analysis section.
-   If the analysis is more than 7 days old, WARN the user:
+   If multiple `## Analysis` sections exist (from a re-analysis after
+   rejection), use the most recent one (identified by the latest
+   *Analyzed:* date). Earlier analyses may contain outdated findings.
+
+   Freshness check: read the *Analyzed:* date in the most recent
+   Analysis section. If the analysis is more than 7 days old, WARN
+   the user:
    "Analysis was done on [date] — the codebase may have changed since then.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
@@ -45,7 +50,8 @@ All dates in this workflow use YYYY-MM-DD format.
 Before dispatching agents, collect everything they need so each agent is
 self-contained (agents have no conversation history):
 
-a. Read the full item file (issue or feature) including Analysis section
+a. Read the full item file (issue or feature) including the most recent
+   Analysis section
 b. Read the source files cited in the Analysis (blast radius, affected code)
 c. Read `.relay/relay-config.md` for project-specific edge cases and test commands
 d. If a previous REJECTED review exists, extract its full text
@@ -256,7 +262,8 @@ Once all 5 agents return, perform synthesis:
 Persist the final synthesized plan in each relevant issue/feature file in
 `.relay/issues/` or `.relay/features/`. If an Implementation Plan section
 already exists (from a previous rejected plan), REPLACE it — do not append
-a second copy. If no plan exists yet, APPEND after the Analysis section.
+a second copy. If no plan exists yet, APPEND after the last Analysis
+section.
 
 Use this exact format:
 
