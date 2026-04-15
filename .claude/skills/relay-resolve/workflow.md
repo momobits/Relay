@@ -42,6 +42,9 @@ Close it out.
        .relay/archive/features/) with the banner:
        > **ARCHIVED** — Closed as stale. [Reason]. No code changes made.
        Skip steps 2-3 for this item (no implementation doc needed).
+       Step 5 still processes this item: it rewrites exercise back-references
+       for the active→archive path transition and may trigger exercise
+       archival once all downstream items from the source exercise are resolved.
 
 2. For each resolved item (skip stale items — they were archived in step 1), create an implementation doc in .relay/implemented/:
    - Filename: same as the item file (e.g., `delete_entity_not_atomic.md`
@@ -101,7 +104,8 @@ Close it out.
    If .relay/relay-exercise.md does not exist, skip this step entirely
    (the exercise pipeline is not in use in this project).
 
-   Otherwise, for each item archived in step 4 (iterate the same list):
+   Otherwise, for each item archived during this /relay-resolve run (from step 1
+   stale archival and/or step 4 normal archival — iterate the combined list):
 
    5a. Compute the path transition:
        - Active path: `issues/<file>.md` or `features/<file>.md`
