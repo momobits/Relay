@@ -121,12 +121,12 @@ Check if any items are in-progress (have pipeline sections appended):
 **Exercise pipeline state** (check alongside the above conditions — these are additions, not replacements):
 - `.relay/relay-exercise.md` does not exist AND project has source code
   → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** to build a capability map, or continue with the standard discovery flow via **/relay-discover**."*
-- Hub exists AND has capabilities with status `mapped` (not yet exercised)
-  → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time, or **/relay-exercise-run <group>** to sweep a group."*
-- Active exercise files exist in .relay/exercise/ with `draft` findings
-  → *"N exercise files have unprocessed findings. Run **/relay-exercise-file <capability>** to walk them, or target a filter (e.g., **<capability> issues**)."*
-- Hub has capabilities with status `stale`
-  → *"N capabilities marked stale (project has changed since last map). Run **/relay-exercise** to refresh the map."*
+- Master hub exists AND its Aggregate Capabilities table has rows with status `mapped` (not yet exercised in any session)
+  → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time within the active session, or **/relay-exercise-run <group>** to sweep a group."*
+- Active exercise files exist under `.relay/exercise/<session>/*.md` in any active session subfolder, with `draft` findings
+  → *"N exercise files have unprocessed findings (across <K> active session(s)). Run **/relay-exercise-file --session <session> <capability>** to walk them, or target a filter (e.g., **<capability> issues**)."*
+- Master hub Aggregate Capabilities has rows with status `stale`
+  → *"N capabilities marked stale (project has changed since last map). Run **/relay-exercise** to refresh — creates a fresh session subfolder with the current scope."*
 
 Priority when multiple exercise conditions apply: draft findings first (active work), then stale refresh, then new mapping. Exercise conditions coexist with issue/feature conditions — present both if applicable.
 

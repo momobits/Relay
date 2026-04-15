@@ -33,9 +33,9 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    Check if .relay/relay-exercise.md exists. If not, skip this sub-section
    entirely (the exercise pipeline is not in use).
 
-   Otherwise, read the hub's Coverage Summary table and add a new section
-   to relay-status.md after the `## Active Features` section and before
-   `## Implemented`:
+   Otherwise, read the master hub's Aggregate Coverage table and Sessions
+   table, and add a new section to relay-status.md after the
+   `## Active Features` section and before `## Implemented`:
 
    ## Exercise Pipeline — .relay/relay-exercise.md
 
@@ -43,25 +43,40 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    - Exercised: <count> (awaiting filing via /relay-exercise-file)
    - Filed: <count> (awaiting downstream resolution)
    - Stale: <count>
+   - Sessions: <X> active, <Y> complete, <Z> archived
 
-   See [relay-exercise.md](relay-exercise.md) for the full capability map.
+   See [relay-exercise.md](relay-exercise.md) for the full capability map
+   and Sessions index.
 
-   Then validate exercise file references: for each hub row with
-   Status `exercised` or `filed`, read the `Exercise File` column
-   and verify the path resolves to an existing file:
-   - Active path (`exercise/<capability>.md`): check
-     `.relay/exercise/<capability>.md`
-   - Archive path (`archive/exercise/<capability>.md`): check
-     `.relay/archive/exercise/<capability>.md`
+   Then validate exercise file references in the master hub:
 
-   For each broken reference (path does not resolve to an existing
-   file), add a warning line to the exercise pipeline section in
-   relay-status.md:
-   *"Exercise file missing for `<capability>` — re-run
-   `/relay-exercise-run <capability>`."*
+   **Aggregate Capabilities rows:** for each row with Status `exercised`
+   or `filed`, read the `Latest Exercise File` column and verify the path
+   resolves to an existing file:
+   - Active path (`exercise/<session>/<capability>.md`): check
+     `.relay/exercise/<session>/<capability>.md`
+   - Archive path (`archive/exercise/<session>/<capability>.md`): check
+     `.relay/archive/exercise/<session>/<capability>.md`
 
-   If any broken references are found, append a count to the
-   exercise pipeline summary:
+   For each broken reference, add a warning to relay-status.md:
+   *"Exercise file missing for `<capability>` in session `<session>`
+   — the session may have been manually deleted. Re-run
+   `/relay-exercise` to create a fresh session."*
+
+   **Sessions rows:** for each row in the Sessions table, verify the
+   `Control File` column path resolves:
+   - Active path (`exercise/<session>/_control.md`): check
+     `.relay/exercise/<session>/_control.md`
+   - Archive path (`archive/exercise/<session>/_control.md`): check
+     `.relay/archive/exercise/<session>/_control.md`
+
+   For each broken control file, add a warning to relay-status.md:
+   *"Session control file missing for session `<session>` — this
+   session is orphaned. Manually inspect `.relay/exercise/<session>/`
+   and either restore `_control.md` or remove the subfolder."*
+
+   If any broken references are found, append a count to the exercise
+   pipeline summary:
    `- Broken references: <count> (see warnings above)`
 
 7. Flag any items in issues/ or features/ that are fully RESOLVED but haven't
@@ -112,19 +127,26 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    | ...  | ...  | ...   | Run /...  |
 
    For brainstorm files created by the exercise filer (check for a
-   `*Source:*` header matching `*Source: exercise/<capability>.md finding <N>*`
-   or `*Source: archive/exercise/<capability>.md finding <N>*`), annotate
-   the Next Step column with "(seeded from exercise <capability>)".
+   `*Source:*` header matching
+   `*Source: exercise/<session>/<capability>.md finding <N>*` or
+   `*Source: archive/exercise/<session>/<capability>.md finding <N>*`,
+   or the goal-mode variant
+   `*Source: exercise/<session>/_control.md journey step <N>*`),
+   annotate the Next Step column with
+   "(seeded from exercise `<capability>` in session `<session>`)" or
+   "(seeded from goal session `<session>`, journey step <N>)".
 
-   Also, for each active exercise file in .relay/exercise/*.md, check
-   if it has any findings with `Status: draft`. If yes, add rows to
-   the In-Progress Work section under a new sub-table:
+   Also, for each active exercise file in
+   `.relay/exercise/<session>/*.md` (across all active session
+   subfolders), check if it has any findings with `Status: draft`.
+   If yes, add rows to the In-Progress Work section under a new
+   sub-table:
 
    ### Exercise Pipeline
 
-   | Capability | Exercise File | Drafts Remaining | Next Step |
-   |------------|---------------|------------------|-----------|
-   | <name>     | exercise/<name>.md | <count>    | Run /relay-exercise-file |
+   | Capability | Session   | Exercise File                       | Drafts Remaining | Next Step                                              |
+   |------------|-----------|-------------------------------------|------------------|--------------------------------------------------------|
+   | <name>     | <session> | exercise/<session>/<name>.md        | <count>          | Run /relay-exercise-file --session <session> <name>    |
 
 10. Staleness detection:
     For every in-progress item (from steps 8 and 9), compare the most

@@ -10,17 +10,42 @@ Detect mode:
 
 - If `.relay/relay-exercise.md` does **not** exist → **first-run mode**
 - If `.relay/relay-exercise.md` exists and is parseable (has the expected
-  `## Capabilities` heading and at least one group table) → **refresh mode**
-- If `.relay/relay-exercise.md` exists but is **not** parseable → ask the
-  user: *"I couldn't parse the existing hub. Rebuild from scratch? This
-  will lose coverage history. [y/n]"*
+  `## Sessions` heading and at least one row, or `## Aggregate Capabilities`
+  if Sessions is empty) → **refresh mode**
+- If `.relay/relay-exercise.md` exists with a `## Capabilities` heading
+  AND no `## Sessions` heading → **legacy 3.1.0 layout detected**;
+  stop with: *"This project's exercise hub is in the 3.1.0 flat
+  layout. The 3.2.x exercise pipeline expects session subfolders.
+  See .relay/version.md changelog (3.2.0 entry) for the upgrade path
+  before re-running /relay-exercise. Refusing to operate to prevent
+  data loss."*
+  Do NOT offer a rebuild on this branch — the legacy hub is preserved
+  intact for the upgrade path. (Per the 3.2.0 release boundary, this
+  message intentionally does not name the migration skill; users
+  discover it via the changelog.)
+- If `.relay/relay-exercise.md` exists, lacks `## Sessions`, AND lacks
+  `## Capabilities` → **truly unparseable**; ask: *"I couldn't parse the
+  existing master hub. Rebuild from scratch? This will lose the Sessions
+  index and Aggregate Capabilities history. Existing session subfolders
+  under `.relay/exercise/` are not affected. [y/n]"*
   On yes → first-run mode. On no → stop.
+
+**Both first-run and refresh modes create a new session.** Refresh mode
+does NOT mutate prior sessions' subfolders or `_control.md` files — it
+adds a new session to the master hub's Sessions table and creates a new
+`.relay/exercise/<session>/` subfolder. Capability rows that survive
+across sessions are tracked in the master hub's Aggregate Capabilities
+(see the master hub format in `relay-exercise.md` — sibling design).
 
 Create directories if they don't exist (fallback — `/relay-setup` handles
 primary creation after the integration audit):
 
 - `.relay/exercise/`
 - `.relay/archive/exercise/`
+
+(Session subfolders under these top-level dirs are created on demand by
+Phase 4.5 and by `/relay-exercise-file` / `/relay-resolve` when they
+need archive subfolders.)
 
 If the project has no readable content at all (no README, no docs directory,
 no source code files, no manifest files), stop with:
@@ -111,28 +136,143 @@ Rules:
   `<!-- Populated by Phase 2 scan -->`), recommend a fresh population and
   offer to write the scan results directly
 
-## Phase 5 — Write or refresh the hub
+## Phase 4.5 — Derive session name + create subfolder
 
-### First-run mode
+Build the session name:
 
-Write `.relay/relay-exercise.md` using this structure, populated with the
-confirmed identity, discovered capabilities, and the initial Refresh Log
-entry:
+    <mode-slug>-<YYYY-MM-DDTHHMM>
+
+- Default mode: `<mode-slug>` is the literal `default`.
+- Goal mode: `<mode-slug>` is the goal narrative slugified (lowercase,
+  non-alphanumerics → hyphen, collapse repeats, strip non-ASCII; cap
+  slug body at **48 characters**, truncated at the last `-` boundary
+  ≤ 48). Goal-mode dispatch is owned by the goal-driven mapping
+  feature; this skill, in its current scope, only writes `default`.
+
+Same-minute collision: append `-2`, `-3` to the timestamp segment (NOT
+to the slug body) until the subfolder name is unique against both
+`.relay/exercise/` and `.relay/archive/exercise/`.
+
+Create `.relay/exercise/<session>/`. The matching archive subfolder
+(`.relay/archive/exercise/<session>/`) is created on demand by
+`/relay-exercise-file` Phase 4 or `/relay-resolve` step 5e — not
+pre-created here.
+
+## Phase 5 — Write the master hub + session control file
+
+### Phase 5a — Master hub upsert
+
+Write or update `.relay/relay-exercise.md` using the project-wide master
+registry format (see sibling feature `exercise_master_hub.md`). The hub's
+job is to give `/relay-scan`, `/relay-help`, and humans a single place
+to answer "what can this project do, what's the latest status of each
+capability, and what sessions exist."
+
+**First-run mode** writes the skeleton:
 
     # Project Exercise Map
 
-    *Last mapped: YYYY-MM-DD by /relay-exercise*
+    *Last updated: YYYY-MM-DD by /relay-exercise*
 
-    > Generated and maintained by /relay-exercise. /relay-exercise-run and
-    > /relay-exercise-file update individual rows as capabilities move through
-    > their lifecycle. This file is additive — stale rows are marked, not
-    > removed.
+    > Master registry. Per-session detail lives in
+    > `.relay/exercise/<session>/_control.md`.
+    > This file is additive — stale rows are marked, not removed.
+    > Generated and maintained by /relay-exercise. /relay-exercise-run,
+    > /relay-exercise-file, and /relay-resolve update individual rows.
+    > Run /relay-scan to refresh lazy summaries.
 
     ---
 
     ## Project Identity
 
     [One paragraph confirmed with the user in Phase 3]
+
+    ---
+
+    ## Sessions
+
+    | Session                       | Mode    | Created    | Status | Control File                                          | Summary                            |
+    |-------------------------------|---------|------------|--------|--------------------------------------------------------|------------------------------------|
+    | <session>                     | default | YYYY-MM-DD | active | exercise/<session>/_control.md                        | N mapped                           |
+
+    ---
+
+    ## Aggregate Capabilities
+
+    Latest known status per capability, rolled up from all sessions.
+
+    ### Group: [Group Name]
+
+    | Capability    | Status | Last Updated | Latest Session | Latest Exercise File | Latest Findings Filed |
+    |---------------|--------|--------------|----------------|----------------------|-----------------------|
+    | capability-a  | mapped | YYYY-MM-DD   | <session>      | —                    | —                     |
+
+    ### Ungrouped
+
+    | Capability | Status | Last Updated | Latest Session | Latest Exercise File | Latest Findings Filed |
+    |------------|--------|--------------|----------------|----------------------|-----------------------|
+
+    ---
+
+    ## Aggregate Coverage
+
+    | Status    | Count |
+    |-----------|-------|
+    | mapped    | N     |
+    | exercised | 0     |
+    | filed     | 0     |
+    | stale     | 0     |
+
+    ---
+
+    ## Refresh Log
+
+    - **YYYY-MM-DD** — /relay-exercise: session `<session>` created.
+      Mapped N capabilities across M groups.
+
+**Refresh mode** appends to the existing master hub:
+
+- Append a new row to the Sessions table with Status `active`, Control
+  File `exercise/<session>/_control.md`, Summary `N mapped`.
+- For each capability discovered this run:
+  - Already in Aggregate Capabilities → update Last Updated = today,
+    Latest Session = new session, Latest Exercise File = `—` (reset —
+    earlier sessions' files remain accessible through their own
+    `_control.md`); if prior status was `stale`, flip to `mapped`
+    (re-detected). Other status values are NOT clobbered (a `filed`
+    capability keeps `filed` until the new session re-exercises it).
+  - Not in Aggregate Capabilities → insert a new row under its group
+    with Status = `mapped`, Last Updated = today, Latest Session = new
+    session, Latest Exercise File = `—`, Latest Findings Filed = `—`.
+- For each capability previously in Aggregate Capabilities that this
+  scan did NOT detect → set Status = `stale`, Last Updated = today.
+  Leave Latest Session / Latest Exercise File untouched so history
+  remains findable.
+- Recompute Aggregate Coverage counts.
+- Append to Refresh Log:
+  `**YYYY-MM-DD** — /relay-exercise: session \`<session>\` created.
+   Mapped N capabilities. A new, B updated, C marked stale.`
+- Update `*Last updated:*` header.
+
+Nothing is ever deleted. The master hub grows monotonically.
+
+### Phase 5b — Session control file (`_control.md`)
+
+Write `.relay/exercise/<session>/_control.md` using this template:
+
+    # Exercise Session: <session>
+
+    *Mode:* default
+    *Created:* YYYY-MM-DD by /relay-exercise
+    *Status:* active
+    *Last activity:* YYYY-MM-DD by /relay-exercise
+
+    ---
+
+    ## Session Scope
+
+    Bottom-up scan of the project covering all discovered capabilities
+    as of YYYY-MM-DD.
 
     ---
 
@@ -148,7 +288,7 @@ entry:
 
     ---
 
-    ## Coverage Summary
+    ## Session Coverage
 
     | Status    | Count |
     |-----------|-------|
@@ -159,13 +299,13 @@ entry:
 
     ---
 
-    ## Capabilities
+    ## Session Capabilities
 
     ### Group: [Group Name]
 
-    | Capability       | Status | Last Updated | Exercise File | Findings Filed |
-    |------------------|--------|--------------|---------------|----------------|
-    | capability-name  | mapped | YYYY-MM-DD   | —             | —              |
+    | Capability       | Status | Last Updated | Exercise File                    | Findings Filed |
+    |------------------|--------|--------------|----------------------------------|----------------|
+    | capability-name  | mapped | YYYY-MM-DD   | —                                | —              |
 
     ### Ungrouped
 
@@ -174,50 +314,55 @@ entry:
 
     ---
 
-    ## Refresh Log
+    ## Session Log
 
-    - **YYYY-MM-DD** — Initial mapping. Added N capabilities across M groups.
+    - **YYYY-MM-DD** — /relay-exercise: session created (default mode).
+      Mapped N capabilities across M groups.
 
-### Refresh mode
-
-Parse the existing hub, run the new scan (Phase 2 results), and reconcile:
-
-- **Capability still present** → leave the row completely untouched
-  (Status, Last Updated, Exercise File, Findings Filed all preserved)
-- **New capability discovered** → append a row to the appropriate group
-  section (or Ungrouped) with Status = `mapped`, Last Updated = today
-- **Previously-mapped capability no longer detected** → change Status to
-  `stale`, update Last Updated to today, leave all other columns intact
-- **Context chains** → add new chains, mark missing chains as stale,
-  never rewrite existing chain content
-- **Coverage Summary** → recompute counts from the updated tables
-- **Refresh Log** → append a new dated entry summarizing changes
-- **Last mapped date** → update to today
-
-Nothing is ever deleted. The hub grows monotonically.
+**Write strategy:** subsequent mutations by `/relay-exercise-run`
+Phase 7 and `/relay-exercise-file` Phase 4 perform incremental row
+updates with mtime checks (matches today's hub semantics). Session
+scope is **fixed at creation** — runners and filers do not add or
+remove capability rows after Phase 5b.
 
 ### Contracts
 
 **Capability names:** kebab-case (lowercase letters, digits, hyphens).
 Slugify by lowercasing, replacing non-alphanumerics with hyphens,
 collapsing consecutive hyphens, stripping non-ASCII to base forms (é→e,
-ñ→n). Collisions resolved by appending `-2`, `-3`; noted in Refresh Log.
+ñ→n). Collisions resolved by appending `-2`, `-3`; noted in Session Log.
+
+**Session names:** `<mode-slug>-<YYYY-MM-DDTHHMM>` per Phase 4.5.
+Timestamp segment uses `THHMM` (no colons — Windows filesystem safe).
 
 **Status vocabulary:** exactly four values — `mapped`, `exercised`,
-`filed`, `stale`.
+`filed`, `stale`. Applies to both per-session `_control.md` capability
+rows and the master hub's Aggregate Capabilities rows.
+
+**Session lifecycle vocabulary** (master hub Sessions table + `_control.md`
+`*Status:*` header): `active`, `complete`, `archived`.
 
 **Dates:** ISO `YYYY-MM-DD`. Single date per row for the most recent
 transition.
 
-**Paths:** relative to `.relay/` — e.g., `exercise/foo.md`, not
-`./exercise/foo.md` or absolute paths.
+**Paths:** relative to `.relay/`, with session subfolder segment —
+`exercise/<session>/foo.md` (active) or `archive/exercise/<session>/foo.md`
+(archived). Not `./exercise/<session>/foo.md`, not absolute paths. Always
+forward slashes (matches existing skill convention; cross-platform safe).
+
+**Required grep anchors** in the master hub: `## Project Identity`,
+`## Sessions`, `## Aggregate Capabilities`, `### Group:`, `### Ungrouped`,
+`## Aggregate Coverage`, `## Refresh Log`. In `_control.md`:
+`## Session Scope`, `## Context Chains`, `## Session Coverage`,
+`## Session Capabilities`, `### Group:`, `### Ungrouped`, `## Session Log`.
 
 **Group stability:** once a capability exists under a group, it stays
 there unless the user manually moves it. New capabilities get the
 current-run grouping.
 
-**State model:** consumed internally in Phase 4, NOT rendered in the hub.
-State info lives in `relay-config.md` only (single source of truth).
+**State model:** consumed internally in Phase 4, NOT rendered in the
+master hub or `_control.md`. State info lives in `relay-config.md`
+only (single source of truth).
 
 ## Phase 6 — Summary + navigation
 

@@ -23,9 +23,23 @@ Guide me through brainstorming this feature interactively.
    "... and N more. Pass a specific file as an argument to load it directly."
 
    To detect seeded brainstorms, look for the `*Source:*` header line
-   with the pattern `*Source: exercise/<capability>.md finding <N>*` or
-   `*Source: archive/exercise/<capability>.md finding <N>*` — annotate
-   the list entry with "(seeded from exercise <capability>)".
+   with one of these patterns:
+
+   - Default-mode finding source:
+     `*Source: exercise/<session>/<capability>.md finding <N>*` or
+     `*Source: archive/exercise/<session>/<capability>.md finding <N>*`
+     → annotate with "(seeded from exercise `<capability>` in session
+     `<session>`)".
+   - Goal-mode journey-step source:
+     `*Source: exercise/<session>/_control.md journey step <N>*` or
+     `*Source: archive/exercise/<session>/_control.md journey step <N>*`
+     → annotate with "(seeded from goal session `<session>`, journey
+     step <N>)".
+
+   Parse `<session>`, `<capability>` (or journey step) from the matched
+   path. The prefix matcher is `exercise/<session>/` or
+   `archive/exercise/<session>/`; the suffix differs (`finding <N>` vs
+   `journey step <N>`).
 
    - On selecting an existing brainstorm: load it as the working file,
      read the Goal/Context (and if seeded, read the referenced exercise

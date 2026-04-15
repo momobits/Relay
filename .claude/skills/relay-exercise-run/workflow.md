@@ -6,37 +6,64 @@ Pick a capability (or a group of capabilities) from `.relay/relay-exercise.md`, 
 
 **This skill runs real commands against the real project.** Unlike other Relay skills that reason about code, this one drives the application. It may create data, modify state, start services, or hit external dependencies. The trust gate in Phase 3 and the destructive-command re-prompts exist to keep the user in control.
 
-## Phase 1 — Arg resolution
+## Phase 1 — Arg resolution + session resolution
 
 **Preflight:** if `.relay/relay-exercise.md` does not exist, stop with:
-*"No exercise hub found. Run `/relay-exercise` first to map the project's
-capabilities."*
+*"No exercise master hub found. Run `/relay-exercise` first to create
+a session."*
 
-Read `.relay/relay-exercise.md`. Parse the capabilities table(s) by group.
+**Session resolution:** scan `.relay/exercise/*/` for subfolders
+containing `_control.md` with `*Status:* active`. Apply this order:
 
-Resolve the user's argument:
+1. **Explicit `--session <name>`** flag (or trailing positional `<session>`
+   when the capability/group arg is already consumed) → use that session
+   verbatim. Error cleanly with available active sessions listed if the
+   named subfolder does not exist or is not active.
+2. **Exactly one active session** → use it silently.
+3. **Multiple active sessions** → prompt:
+   *"Multiple active sessions found. Select one:*
+   *  1. <session-1> (<X> exercised, <Y> draft)*
+   *  2. <session-2> (<X> exercised, <Y> draft)*
+   *Pick [1/2/...], or rerun with `--session <name>`."*
+4. **No active sessions** → stop with: *"No active session. Run
+   `/relay-exercise` first to create one."*
 
-- **No argument** → pick the first capability with status `mapped` in hub
-  order (top to bottom, groups in order). If none are `mapped`, tell the
-  user: *"All capabilities are already exercised or filed. Run
-  `/relay-exercise` to refresh the map, or name a specific capability to
-  re-exercise."*
+**Capability lookup:** read the resolved session's `_control.md`.
+If the file does not exist or is unparseable (no `## Session Capabilities`
+heading), stop with: *"Session `<session>` is missing or has a corrupt
+control file. Inspect `.relay/exercise/<session>/` manually and either
+restore `_control.md` from version control / backup, or run
+`/relay-exercise` to create a fresh session."*
+
+Parse the `## Session Capabilities` tables by group. Resolve the user's
+argument against the **session-scoped** table (NOT the master hub's
+Aggregate Capabilities — sessions have fixed scope at creation):
+
+- **No argument** → pick the first capability with status `mapped` in
+  `_control.md` order (top to bottom, groups in order). If none are
+  `mapped`, tell the user: *"All capabilities in session `<session>`
+  are already exercised or filed. Run `/relay-exercise` to create a
+  new session, or name a specific capability to re-exercise within
+  this session."*
 
 - **`<capability-name>`** → look it up by exact match (case-insensitive,
-  kebab-case) against the hub. Error cleanly if not found — suggest closest
-  matches by edit distance. If found with status `mapped` or `stale`,
+  kebab-case) against the session's Session Capabilities. Error cleanly
+  if not in this session — suggest closest matches by edit distance,
+  and recommend running `/relay-exercise` to create a new session that
+  includes this capability. If found with status `mapped` or `stale`,
   proceed normally. If found with status `exercised` or `filed`, prompt:
-  *"This capability was last exercised on YYYY-MM-DD with N findings.
-  Re-exercise anyway? [y/n]"*
+  *"This capability was last exercised on YYYY-MM-DD with N findings
+  in this session. Re-exercise anyway? [y/n]"*
   On yes, proceed in **re-run mode** (see Phase 6 filename logic).
 
-- **`<group-name>`** → look up the group by exact match against hub section
-  headers (`### Group: <name>`). Error cleanly if not found. Collect all
-  capabilities in that group with status `mapped` or `stale`. For any that
-  are `exercised` or `filed`, offer to include them (re-run mode applies
-  per capability).
+- **`<group-name>`** → look up the group by exact match against the
+  session's `### Group: <name>` headers. Error cleanly if not found.
+  Collect all capabilities in that group with status `mapped` or `stale`.
+  For any that are `exercised` or `filed`, offer to include them (re-run
+  mode applies per capability).
 
-Store the resolved list of `(capability, mode)` tuples for Phase 3 onward.
+Store the resolved `(session, capability, mode)` tuple set for Phase 3
+onward.
 
 ## Phase 2 — Launch recipe resolution
 
@@ -138,9 +165,9 @@ written and no hub changes are made.
 
 ## Phase 4 — Establish prerequisite state
 
-For the current capability, check the hub's Context Chains section. If the
-capability appears in any chain at position N > 1, establish the state
-that capabilities 1 through N-1 would have produced.
+For the current capability, check the session's `_control.md` Context
+Chains section. If the capability appears in any chain at position N > 1,
+establish the state that capabilities 1 through N-1 would have produced.
 
 **Key distinction:** prerequisites are setup, not exercises. Do NOT produce
 exercise files for prerequisite capabilities. Do NOT append prerequisite
@@ -200,8 +227,8 @@ up to the kill point.
 **Output volume:** if a command produces more than 200 lines of combined
 stdout+stderr, truncate to first 100 and last 100 lines with a
 `[... N lines truncated ...]` marker in the exercise file. Save the full
-output to `.relay/exercise/<capability>.outputs/scenario_<N>.log` only
-if truncation occurred. Create the `.outputs/` directory on demand.
+output to `.relay/exercise/<session>/<capability>.outputs/scenario_<N>.log`
+only if truncation occurred. Create the `.outputs/` directory on demand.
 
 **State tracking:** track every state change the session makes (rows
 created, files written, services started) in a running list for the
@@ -214,12 +241,18 @@ observable state affordance for a particular change, note in State Changes:
 
 ## Phase 6 — Write the exercise file
 
-Determine the file path:
-- **First exercise of this capability** →
-  `.relay/exercise/<capability-name>.md` (no suffix)
-- **Re-run of an already-exercised or filed capability** →
-  `.relay/exercise/<capability-name>-<YYYY-MM-DD>.md`
+Determine the file path (always nested under the resolved session):
+- **First exercise of this capability in this session** →
+  `.relay/exercise/<session>/<capability-name>.md` (no suffix)
+- **Re-run within the session** (capability already has an exercise
+  file in this session) →
+  `.relay/exercise/<session>/<capability-name>-<YYYY-MM-DD>.md`
   If a re-run file with that date already exists, append `-2`, `-3`, etc.
+
+(Re-running a capability across sessions writes a fresh
+`<session>/<capability-name>.md` in each session; the older session's
+file is never touched. The master hub Aggregate Capabilities row points
+at the latest session — see sibling master-hub design.)
 
 Write the file using this structure:
 
@@ -307,31 +340,64 @@ Write the file using this structure:
 Previous exercise files (if re-run) are left untouched on disk — the hub
 just stops pointing to them.
 
-## Phase 7 — Update hub + continue sweep
+## Phase 7 — Update session control file + master hub aggregate
 
-Open `.relay/relay-exercise.md`. For the row matching the current
+### 7a. Session `_control.md` row update (incremental, mtime-checked)
+
+Read `.relay/exercise/<session>/_control.md` from disk. Capture its
+mtime. For the `## Session Capabilities` row matching the current
 capability:
 - `Status` → `exercised`
 - `Last Updated` → today (YYYY-MM-DD)
-- `Exercise File` → relative path from `.relay/`
-  (e.g., `exercise/create-user.md`)
+- `Exercise File` → `exercise/<session>/<capability-name>.md`
 - `Findings Filed` → clear to `—` on re-run. On first run, already `—`.
 
-Update the Coverage Summary table counts: if the capability's previous
-status was `mapped`, decrement `mapped` by 1 and increment `exercised`
-by 1. If the previous status was `stale`, decrement `stale` by 1 and
-increment `exercised` by 1. If the previous status was `filed` (re-run
-mode), decrement `filed` by 1 and increment `exercised` by 1. If the
-previous status was `exercised` (re-run mode), no net change to counts
-(the capability was already counted as exercised).
+Update the `## Session Coverage` table counts: if the capability's
+previous status was `mapped`, decrement `mapped` by 1 and increment
+`exercised` by 1. If the previous status was `stale`, decrement `stale`
+by 1 and increment `exercised` by 1. If the previous status was `filed`
+(re-run mode), decrement `filed` by 1 and increment `exercised` by 1.
+If the previous status was `exercised` (re-run mode), no net change to
+counts.
 
-Append a Refresh Log entry:
+Update the `*Last activity:*` header to today.
+
+Append a Session Log entry:
 - First run: `**YYYY-MM-DD** — /relay-exercise-run: exercised
   \`<capability>\`. N scenarios, M findings (A issue / B brainstorm /
   C note).`
 - Re-run: `**YYYY-MM-DD** — /relay-exercise-run: re-exercised
-  \`<capability>\` (previous at \`exercise/<previous-filename>\`).
+  \`<capability>\` (previous at \`exercise/<session>/<previous-filename>\`).
   N scenarios, M findings.`
+
+**Atomic write:** before persisting, re-read `_control.md` and verify
+mtime matches the read at the start of Phase 7. If mtime differs,
+abort with: *"Session control file was modified externally since this
+exercise began; rerun `/relay-exercise-run` to continue from current
+state."*
+
+### 7b. Master hub Aggregate Capabilities row update
+
+Open `.relay/relay-exercise.md`. For the Aggregate Capabilities row
+matching the current capability:
+- `Status` → `exercised` (unless re-running an already-`filed` cap;
+  then still flip to `exercised` — the row reflects the latest action)
+- `Last Updated` → today (YYYY-MM-DD)
+- `Latest Session` → current session
+- `Latest Exercise File` → `exercise/<session>/<capability-name>.md`
+- `Latest Findings Filed` → `—` (reset; any prior Findings Filed live
+  in older sessions' `_control.md` and in those filed items themselves)
+
+Recompute Aggregate Coverage using the same transition rules as the
+session-coverage update above (mapped→exercised, stale→exercised,
+filed→exercised on re-run, exercised→exercised no-op).
+
+Update the master hub `*Last updated:*` header to today.
+
+No Refresh Log entry on the master hub for per-capability events —
+detail lives in the session `_control.md` Session Log. Master hub
+Refresh Log entries only fire on session lifecycle events (creation
+in Phase 5a, archival in `/relay-resolve` step 5f).
 
 **Sweep continuation** (group-sweep mode with more capabilities queued):
 - If the current exercise produced no `high`-severity `would-be-issue`

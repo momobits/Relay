@@ -12,12 +12,18 @@ Create the following directory structure:
   .relay/features/
   .relay/implemented/
   .relay/notebooks/
-  .relay/exercise/
+  .relay/exercise/                  # top-level container; session subfolders created on-demand by /relay-exercise
   .relay/archive/
   .relay/archive/issues/
   .relay/archive/features/
   .relay/archive/notebooks/
-  .relay/archive/exercise/
+  .relay/archive/exercise/          # top-level container; archive session subfolders created on-demand by /relay-exercise-file or /relay-resolve
+
+Note: `.relay/exercise/` and `.relay/archive/exercise/` are containers.
+Each `/relay-exercise` invocation creates a session subfolder underneath
+(e.g., `.relay/exercise/default-2026-04-15T1430/`) holding `_control.md`
+and per-capability exercise files. Setup creates only the top-level
+containers; sessions are created at runtime.
 
 ### Version file
 
@@ -39,6 +45,14 @@ Create this file to track the installed Relay version:
 | **Format** | skills |
 
 ## Changelog
+
+### 3.2.0 — Exercise pipeline session subfolders + master hub
+- New on-disk layout: `.relay/exercise/<session>/` with `_control.md` per session (default and goal modes share the layout)
+- Master hub becomes a project-wide registry: Sessions table + Aggregate Capabilities + Aggregate Coverage
+- Per-session content (Context Chains, capabilities table, session log) lives in `_control.md`
+- Path contracts updated across `/relay-exercise`, `/relay-exercise-run`, `/relay-exercise-file`, `/relay-resolve`, `/relay-scan`, `/relay-help`, `/relay-cleanup`, `/relay-brainstorm`, `/relay-order`, `/relay-setup`
+- New skill `/relay-exercise-migrate` (one-time): converts 3.1.0 flat layout to 3.2.0 (20 skills total)
+- BREAKING for 3.1.0 users: run `/relay-exercise-migrate` once after upgrade
 
 ### 3.1.0 — Exercise pipeline
 - Three new skills: /relay-exercise, /relay-exercise-run, /relay-exercise-file

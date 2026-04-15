@@ -39,25 +39,36 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
      that orphaned feature files exist and ask how to handle them.
    - Exercise back-reference update (conditional):
      Check for a `*Source:*` header line matching
-     `*Source: exercise/<capability>.md finding <N>*` or
-     `*Source: archive/exercise/<capability>.md finding <N>*`.
+     `*Source: exercise/<session>/<capability>.md finding <N>*` or
+     `*Source: archive/exercise/<session>/<capability>.md finding <N>*`.
+     Parse `<session>` and `<capability>` from the matched path
+     (split on `/`).
 
      If present, this brainstorm was seeded from an exercise. Update
      back-references before completing the archival:
 
-     a. In .relay/relay-exercise.md, find the row for <capability> and
-        update its `Findings Filed` column: rewrite
+     a. In .relay/relay-exercise.md, find the row for `<capability>`
+        in the master hub's Aggregate Capabilities table and update
+        its `Latest Findings Filed` column: rewrite
         `features/<slug>_brainstorm.md` to
         `archive/features/<slug>_brainstorm.md`.
 
+     a2. In the session's `_control.md` (active path
+         `.relay/exercise/<session>/_control.md` or archive path
+         `.relay/archive/exercise/<session>/_control.md`), find the
+         row for `<capability>` and apply the same rewrite to its
+         `Findings Filed` column.
+
      b. In the source exercise file (read its path from the `*Source:*`
-        line — may be .relay/exercise/<capability>.md or
-        .relay/archive/exercise/<capability>.md), find the finding with
-        `Status: filed: features/<slug>_brainstorm.md` and rewrite to
+        line — may be .relay/exercise/<session>/<capability>.md or
+        .relay/archive/exercise/<session>/<capability>.md), find the
+        finding with `Status: filed: features/<slug>_brainstorm.md`
+        and rewrite to
         `Status: filed: archive/features/<slug>_brainstorm.md`.
 
      Log each rewrite:
        [relay-cleanup] Rewrote back-reference in .relay/relay-exercise.md: features/X_brainstorm.md → archive/features/X_brainstorm.md
+       [relay-cleanup] Rewrote back-reference in .relay/exercise/<session>/_control.md: features/X_brainstorm.md → archive/features/X_brainstorm.md
 
      Idempotency: if a path is already in archive form, skip the rewrite.
 

@@ -113,22 +113,29 @@ Close it out.
 
    5b. Rewrite references to the active path in these locations:
 
-       i.   .relay/relay-exercise.md — in each capability table's
-            `Findings Filed` column, find any comma-separated entry
-            matching the active path and replace with the archive path.
+       i.   .relay/relay-exercise.md — master hub Aggregate Capabilities
+            table: in each row's `Latest Findings Filed` column, find any
+            comma-separated entry matching the active path and replace
+            with the archive path.
 
-       ii.  .relay/exercise/*.md — in each active exercise file, find
-            lines matching `**Status:** filed: <active-path>` and
-            rewrite to `**Status:** filed: <archive-path>`.
+       ii.  .relay/exercise/<session>/_control.md — for every active
+            session subfolder, in each Session Capabilities row's
+            `Findings Filed` column, apply the same rewrite.
 
-       iii. .relay/archive/exercise/*.md — same as (ii), for any
-            already-archived exercise files. These exist if a prior
-            /relay-resolve run already archived the exercise file
-            (per step 5c below) and we're now resolving a later issue
-            that still had stale references.
+       iii. .relay/exercise/*/*.md — in each active exercise file under
+            ANY session subfolder, find lines matching
+            `**Status:** filed: <active-path>` and rewrite to
+            `**Status:** filed: <archive-path>`.
+
+       iv.  .relay/archive/exercise/*/*.md — same as (iii), for any
+            already-archived exercise files in any archived session
+            subfolder. These exist if a prior /relay-resolve run already
+            archived the exercise file (per step 5c below) and we're now
+            resolving a later issue that still had stale references.
 
        For each rewrite made, log it to the output:
          "Rewrote reference in .relay/relay-exercise.md: issues/X.md → archive/issues/X.md"
+         "Rewrote reference in .relay/exercise/<session>/_control.md: issues/X.md → archive/issues/X.md"
 
        Check idempotency: if a reference is already in archive form
        (matches `archive/<type>/...`), skip it. This makes the step
@@ -141,21 +148,25 @@ Close it out.
        or `archive/features/<file>.md`). Look for a `*Source:*` header
        line with the pattern:
 
-           *Source: exercise/<capability>.md finding <N>*
+           *Source: exercise/<session>/<capability>.md finding <N>*
            OR
-           *Source: archive/exercise/<capability>.md finding <N>*
+           *Source: archive/exercise/<session>/<capability>.md finding <N>*
+
+       Parse `<session>` and `<capability>` from the matched path
+       (split on `/`).
 
        - If no `*Source:*` line, the item didn't come from an exercise.
          Skip to the next archived item.
        - If the `*Source:*` path is already in archive form, the
          exercise file is already archived. No further work needed.
          Skip to the next archived item.
-       - If the `*Source:*` path is in active form (`exercise/<cap>.md`),
-         read the referenced exercise file at
-         `.relay/exercise/<capability>.md`. If the file does not exist
-         (e.g., manually deleted), log a warning: "Source exercise file
-         `<path>` not found; cannot determine resolution state. Skipping
-         exercise archival for this item." Skip to the next archived item.
+       - If the `*Source:*` path is in active form
+         (`exercise/<session>/<capability>.md`), read the referenced
+         exercise file at `.relay/exercise/<session>/<capability>.md`.
+         If the file does not exist (e.g., manually deleted), log a
+         warning: "Source exercise file `<path>` not found; cannot
+         determine resolution state. Skipping exercise archival for
+         this item." Skip to the next archived item.
 
    5d. Determine if the exercise is fully resolved:
 
@@ -187,19 +198,23 @@ Close it out.
    5e. Archive the exercise file (single-archival sweep):
 
        i.   Move the exercise file:
-            `.relay/exercise/<capability>.md` →
-            `.relay/archive/exercise/<capability>.md`
+            `.relay/exercise/<session>/<capability>.md` →
+            `.relay/archive/exercise/<session>/<capability>.md`
+
+            Create `.relay/archive/exercise/<session>/` on demand if
+            it doesn't yet exist. (Earlier resolves may have already
+            created the archive subfolder for this session.)
 
             If the exercise file has a timestamped re-run filename
             (e.g., `outline-chapter-2026-04-12.md`), preserve the
             timestamp in the archive filename.
 
-            Log: "Archived exercise: exercise/<capability>.md →
-                  archive/exercise/<capability>.md"
+            Log: "Archived exercise: exercise/<session>/<capability>.md →
+                  archive/exercise/<session>/<capability>.md"
 
        ii.  In the newly-archived exercise file, rewrite any
-            `**Status:** kept: exercise/<capability>.md` lines to
-            `**Status:** kept: archive/exercise/<capability>.md`.
+            `**Status:** kept: exercise/<session>/<capability>.md` lines
+            to `**Status:** kept: archive/exercise/<session>/<capability>.md`.
 
        iii. Rewrite `*Source:*` header lines in all issue and feature
             files (both active and already-archived) that reference
@@ -210,29 +225,71 @@ Close it out.
             - .relay/archive/features/*.md
 
             For any file containing
-            `*Source: exercise/<capability>.md finding <N>*`,
+            `*Source: exercise/<session>/<capability>.md finding <N>*`,
             rewrite to
-            `*Source: archive/exercise/<capability>.md finding <N>*`.
+            `*Source: archive/exercise/<session>/<capability>.md finding <N>*`.
 
             Log each rewrite.
 
-       iv.  Update the .relay/relay-exercise.md hub row for this
-            capability:
-            - `Exercise File` column: `exercise/<capability>.md` →
-              `archive/exercise/<capability>.md`
+       iv.  Update the session `_control.md` row at
+            `.relay/exercise/<session>/_control.md` for this capability:
+            - `Exercise File` column:
+              `exercise/<session>/<capability>.md` →
+              `archive/exercise/<session>/<capability>.md`
+            - `Last Updated` column: today's date
+
+       v.   Update the master hub Aggregate Capabilities row at
+            `.relay/relay-exercise.md` for this capability:
+            - `Latest Exercise File` column:
+              `exercise/<session>/<capability>.md` →
+              `archive/exercise/<session>/<capability>.md`
             - `Last Updated` column: today's date (YYYY-MM-DD)
             - The `Status` column stays at `filed` — "filed" already
               captures "all findings processed and resolved"; there
               is no separate archived status.
 
-       v.   Append a Refresh Log entry to .relay/relay-exercise.md:
+       vi.  Append a Session Log entry to the session `_control.md`:
             `**YYYY-MM-DD** — /relay-resolve: archived exercise
              \`<capability>\`. All downstream items resolved.`
 
+       vii. Append a Refresh Log entry to .relay/relay-exercise.md:
+            `**YYYY-MM-DD** — /relay-resolve: archived exercise
+             \`<capability>\` in session \`<session>\`.`
+
+   5f. Session close-out: if the active session subfolder
+       `.relay/exercise/<session>/` is now empty (no exercise files
+       remain — only `_control.md`), AND every Session Capabilities
+       row in `_control.md` has its `Exercise File` column pointing
+       at an archive path, close the session:
+
+       i.   Update `_control.md`:
+            - `*Status:* active` → `*Status:* archived`
+            - `*Last activity:* YYYY-MM-DD by /relay-resolve`
+
+       ii.  Move `_control.md`:
+            `.relay/exercise/<session>/_control.md` →
+            `.relay/archive/exercise/<session>/_control.md`
+            (the `_control.md` file is the last thing to leave the
+            active subfolder)
+
+       iii. Remove the now-empty active session subfolder
+            `.relay/exercise/<session>/`.
+
+       iv.  Update the master hub Sessions table row for this session:
+            - `Status` column: `active` → `archived`
+            - `Control File` column:
+              `exercise/<session>/_control.md` →
+              `archive/exercise/<session>/_control.md`
+
+       v.   Append to the master hub Refresh Log:
+            `**YYYY-MM-DD** — /relay-resolve: session \`<session>\`
+             archived. All exercises resolved.`
+
    Summary of step 5: all exercise back-references are kept valid
-   whenever an issue/feature is archived, and exercise files are
-   archived automatically once every filed finding from them has
-   been resolved. No orphan references.
+   whenever an issue/feature is archived, exercise files are archived
+   automatically once every filed finding from them has been resolved,
+   and session subfolders are closed out when their last exercise
+   migrates. No orphan references, no orphan subfolders.
 
 6. Check if ANY remaining items in .relay/issues/ or .relay/features/ were
    partially addressed or affected by this change:
