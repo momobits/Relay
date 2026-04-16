@@ -48,6 +48,56 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    See [relay-exercise.md](relay-exercise.md) for the full capability map
    and Sessions index.
 
+   **Sessions Summary recompute** (idempotent — rewrite master hub only,
+   never `_control.md`):
+
+   Preflight: if the master hub has `## Capabilities` but no
+   `## Sessions` heading, the project is in legacy 3.1.0 shape.
+   Skip this entire sub-step and emit a single warning:
+   `[relay-scan] Warning: master hub is in 3.1.0 shape; run /relay-exercise-migrate first.`
+   The dangling-ref block below applies the same guard (pre-existing
+   scan blind spot; acceptable to share the warning).
+
+   For each row in the master hub's Sessions table:
+
+   1. Resolve the `Control File` column path:
+      - Active: `.relay/exercise/<session>/_control.md`
+      - Archive: `.relay/archive/exercise/<session>/_control.md`
+
+   2. Read the `_control.md` file. If missing or unparseable, skip
+      silently (the dangling-ref block below emits the canonical
+      warning; no double-report).
+
+   3. Read the `*Mode:*` header. Branch:
+      - `default` → recompute Summary from `## Session Coverage`:
+        non-zero counts formatted as `<count> <status>` pairs joined
+        by `, `. Example: `4 mapped, 2 exercised, 1 filed`
+        (stale=0 omitted). **All-zero fallback**: if every count is
+        0 (empty session), write Summary as the literal string
+        `empty` rather than an empty/comma-only string.
+      - `goal` → recompute Summary from `## Journey`:
+        `<N>-step journey, <G> gaps` where N = total Journey table
+        rows (INCLUDING rows with terminal Status values like
+        `exercised`, `failed`, `adapted`, `skipped`) and G = count of
+        rows whose current Status is `gap`. Example:
+        `6-step journey, 2 gaps`. N=0 is impossible (Phase 5 of
+        `/relay-exercise` prohibits empty journeys), so no fallback
+        needed for goal mode.
+      - Missing `*Mode:*` header → fall back to default-mode formula
+        and emit a `[relay-scan] Warning: session <session> has no
+        *Mode:* header; assuming default mode for Summary` message.
+
+   4. Rewrite the Sessions table row's Summary column to the computed
+      value. Other columns (Session, Mode, Created, Status, Control
+      File) are untouched.
+
+   Race condition: if `/relay-exercise-run` or `/relay-exercise-file`
+   writes `_control.md` mid-scan, Summary lags by one mutation and
+   self-corrects on the next `/relay-scan`. Same principle applies
+   to concurrent master-hub writes by the runner/filer — scan may
+   race but the monotonic-growth invariant means rewritten Summary
+   values cannot corrupt other hub rows.
+
    Then validate exercise file references in the master hub:
 
    **Aggregate Capabilities rows:** for each row with Status `exercised`

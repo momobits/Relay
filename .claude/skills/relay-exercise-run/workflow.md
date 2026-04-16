@@ -397,7 +397,7 @@ Update the master hub `*Last updated:*` header to today.
 No Refresh Log entry on the master hub for per-capability events —
 detail lives in the session `_control.md` Session Log. Master hub
 Refresh Log entries only fire on session lifecycle events (creation
-in Phase 5a, archival in `/relay-resolve` step 5f).
+in `/relay-exercise` Phase 8, archival in `/relay-resolve` step 5f).
 
 **Sweep continuation** (group-sweep mode with more capabilities queued):
 - If the current exercise produced no `high`-severity `would-be-issue`

@@ -46,6 +46,14 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
+### 3.2.1 — Goal-driven exercise mode
+- `/relay-exercise "<goal>"` activates goal mode: top-down journey discovery; each step mapped to an existing capability (`exists`) or a recorded gap (`gap`); gaps can be seeded as feature brainstorms on the spot via the gap-triage prompt.
+- Goal-mode `_control.md` uses a `## Journey` table in place of `## Context Chains`; `*Mode:* goal` header distinguishes from default.
+- `/relay-exercise-run` gains goal-mode walk (adaptive gap handling, step-prefixed exercise filenames) — ships alongside 6-1 if bundled, or as 3.2.2 otherwise.
+- `/relay-cleanup` and `/relay-scan` extended to parse goal-mode `*Source: exercise/<session>/_control.md journey step <N>*` back-references.
+- `/relay-scan` Sessions Summary recompute shipped (previously claimed in 3.2.0 but missing from code; re-landed here).
+- Skill count unchanged (20).
+
 ### 3.2.0 — Exercise pipeline session subfolders + master hub
 - New on-disk layout: `.relay/exercise/<session>/` with `_control.md` per session (default and goal modes share the layout)
 - Master hub becomes a project-wide registry: Sessions table + Aggregate Capabilities + Aggregate Coverage

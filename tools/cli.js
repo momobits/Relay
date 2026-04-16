@@ -82,6 +82,8 @@ Start with \`/relay-setup\`, then \`/relay-help\`.
 Workflow: \`/relay-analyze\` → \`/relay-plan\` or \`/relay-superplan\` → \`/relay-review\` → implement → \`/relay-verify\` → \`/relay-notebook\` → \`/relay-resolve\`
 
 Exercise flow: \`/relay-exercise\` → \`/relay-exercise-run\` → \`/relay-exercise-file\` → (filed items flow into normal code pipeline)
+
+Goal mode: \`/relay-exercise "<your goal>"\` builds a top-down journey of required capabilities and discovers missing ones as gaps.
 ${MARKER_END}`;
 }
 

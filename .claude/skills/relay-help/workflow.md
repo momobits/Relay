@@ -120,15 +120,17 @@ Check if any items are in-progress (have pipeline sections appended):
 
 **Exercise pipeline state** (check alongside the above conditions — these are additions, not replacements):
 - `.relay/relay-exercise.md` does not exist AND project has source code
-  → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** to build a capability map, or continue with the standard discovery flow via **/relay-discover**."*
+  → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** for a bottom-up capability map, or **/relay-exercise \"<your goal>\"** if you have a specific user journey to probe for missing capabilities. Or continue with standard discovery via **/relay-discover**."*
 - Master hub exists AND its Aggregate Capabilities table has rows with status `mapped` (not yet exercised in any session)
   → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time within the active session, or **/relay-exercise-run <group>** to sweep a group."*
 - Active exercise files exist under `.relay/exercise/<session>/*.md` in any active session subfolder, with `draft` findings
   → *"N exercise files have unprocessed findings (across <K> active session(s)). Run **/relay-exercise-file --session <session> <capability>** to walk them, or target a filter (e.g., **<capability> issues**)."*
 - Master hub Aggregate Capabilities has rows with status `stale`
   → *"N capabilities marked stale (project has changed since last map). Run **/relay-exercise** to refresh — creates a fresh session subfolder with the current scope."*
+- User is asking "can this project do X" or "what's missing to do X" (intent-based; Step 1 routes this, but Step 4 surfaces it as an option here too)
+  → *"Goal mode answers that. Run **/relay-exercise \"<your goal narrative>\"** to map required capabilities top-down and identify gaps. The runner will then walk the journey and adapt around gaps."*
 
-Priority when multiple exercise conditions apply: draft findings first (active work), then stale refresh, then new mapping. Exercise conditions coexist with issue/feature conditions — present both if applicable.
+Priority when multiple exercise conditions apply: draft findings first (active work), then stale refresh, then new mapping (default or goal mode). Exercise conditions coexist with issue/feature conditions — present both if applicable.
 
 ### Step 5 — Present recommendations
 

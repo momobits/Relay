@@ -38,14 +38,15 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
      brainstorm (check the *Brainstorm:* metadata line), warn the user
      that orphaned feature files exist and ask how to handle them.
    - Exercise back-reference update (conditional):
-     Check for a `*Source:*` header line matching
+     Check for a `*Source:*` header line. Two patterns are recognized.
+
+     **Default-mode pattern** (unchanged from 5-1):
+
      `*Source: exercise/<session>/<capability>.md finding <N>*` or
      `*Source: archive/exercise/<session>/<capability>.md finding <N>*`.
-     Parse `<session>` and `<capability>` from the matched path
-     (split on `/`).
+     Parse `<session>` and `<capability>` from the matched path.
 
-     If present, this brainstorm was seeded from an exercise. Update
-     back-references before completing the archival:
+     If matched, apply default-mode rewrites:
 
      a. In .relay/relay-exercise.md, find the row for `<capability>`
         in the master hub's Aggregate Capabilities table and update
@@ -66,11 +67,49 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
         and rewrite to
         `Status: filed: archive/features/<slug>_brainstorm.md`.
 
-     Log each rewrite:
+     **Goal-mode pattern** (NEW — Feature 6-1):
+
+     `*Source: exercise/<session>/_control.md journey step <N>*` or
+     `*Source: archive/exercise/<session>/_control.md journey step <N>*`.
+     Parse `<session>` (kebab slug) and `<N>` (step number as integer).
+
+     If matched, apply goal-mode rewrites:
+
+     g1. Session `_control.md` Journey table (active path
+         `.relay/exercise/<session>/_control.md` or archive path
+         `.relay/archive/exercise/<session>/_control.md`): find the
+         row where the `Step` column equals `<N>`. In that row's
+         `Notes` column, rewrite every occurrence of
+         `features/<slug>_brainstorm.md` to
+         `archive/features/<slug>_brainstorm.md`.
+
+     g2. Session `_control.md` Session Log: find every line matching
+         `/relay-exercise: step <N> gap filed → features/<slug>_brainstorm.md`
+         or `/relay-exercise-run: step <N> filed (features/<slug>_brainstorm.md)`.
+         Rewrite each `features/<slug>_brainstorm.md` occurrence to
+         `archive/features/<slug>_brainstorm.md`.
+
+         Anchoring rule (to prevent substring over-match): the target
+         `features/<slug>_brainstorm.md` MUST be preceded by whitespace
+         OR `→ ` OR `(` AND followed by whitespace, `)`, `.`, or
+         end-of-line. Example counter-case: a longer path
+         `features/other_features/<slug>_brainstorm.md` MUST NOT be
+         rewritten when the search target is the short path. Use the
+         slug + `_brainstorm.md` suffix as the discriminator and verify
+         the character immediately before the match is one of
+         `/whitespace`, `→ `, or `(`.
+
+     g3. NO master-hub Aggregate Capabilities rewrite. Goal-mode `gap`
+         steps never appear in Aggregate Capabilities (per Feature 6-1
+         Phase 8), so there is no row to rewrite. Skip this target for
+         goal-mode brainstorms.
+
+     Log each rewrite (both modes):
        [relay-cleanup] Rewrote back-reference in .relay/relay-exercise.md: features/X_brainstorm.md → archive/features/X_brainstorm.md
        [relay-cleanup] Rewrote back-reference in .relay/exercise/<session>/_control.md: features/X_brainstorm.md → archive/features/X_brainstorm.md
 
-     Idempotency: if a path is already in archive form, skip the rewrite.
+     Idempotency (both modes): if a path is already in archive form,
+     skip the rewrite.
 
      Note: this handles brainstorm archival only. Issue back-references
      and exercise file archival are owned by /relay-resolve (step 5).
