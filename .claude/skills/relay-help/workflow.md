@@ -123,8 +123,10 @@ Check if any items are in-progress (have pipeline sections appended):
   → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** for a bottom-up capability map, or **/relay-exercise \"<your goal>\"** if you have a specific user journey to probe for missing capabilities. Or continue with standard discovery via **/relay-discover**."*
 - Master hub exists AND its Aggregate Capabilities table has rows with status `mapped` (not yet exercised in any session)
   → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time within the active session, or **/relay-exercise-run <group>** to sweep a group."*
+- Active goal session with non-terminal Journey rows: master hub Sessions table has a row with Mode `goal` and Status `active`, and that session's `_control.md` Journey table has at least one row with Status ∈ `exists | gap`
+  → *"Active goal session `<session>` has <Q> un-walked steps (<E> exists, <G> gaps). Run **/relay-exercise-run** to walk the journey end-to-end with adaptive gap handling (substitute / file / skip). Or target a specific step: **/relay-exercise-run <N>**. Mid-walk, the runner pauses on high-severity findings or failures and offers `replan` to revise remaining steps without losing progress."*
 - Active exercise files exist under `.relay/exercise/<session>/*.md` in any active session subfolder, with `draft` findings
-  → *"N exercise files have unprocessed findings (across <K> active session(s)). Run **/relay-exercise-file --session <session> <capability>** to walk them, or target a filter (e.g., **<capability> issues**)."*
+  → *"N exercise files have unprocessed findings (across <K> active session(s)). Run **/relay-exercise-file --session <session> <capability>** for a specific capability, or **/relay-exercise-file --session <session>** with no capability arg to walk all files in the session (step-order in goal sessions)."*
 - Master hub Aggregate Capabilities has rows with status `stale`
   → *"N capabilities marked stale (project has changed since last map). Run **/relay-exercise** to refresh — creates a fresh session subfolder with the current scope."*
 - User is asking "can this project do X" or "what's missing to do X" (intent-based; Step 1 routes this, but Step 4 surfaces it as an option here too)

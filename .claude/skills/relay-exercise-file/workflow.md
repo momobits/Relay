@@ -33,9 +33,10 @@ Parse the user's argument to determine what to walk:
 session resolution — `--session <name>` flag, single active session,
 multi-active prompt, or no-active error). Store the resolved `<session>`.
 
-**No-args resolution:** if no capability argument is given, read the
-session's `.relay/exercise/<session>/_control.md` and search for the
-next capability to act on (top to bottom, groups in order):
+**No-args resolution** — mode-aware (read `*Mode:*` header from
+`_control.md`):
+
+**Default mode** (same as pre-6-2 behavior):
 1. First, look for a capability with status `exercised` whose exercise
    file at `exercise/<session>/<capability>.md` (or dated variant) has
    at least one `draft` finding. If found, use that capability and
@@ -50,7 +51,30 @@ next capability to act on (top to bottom, groups in order):
    work in session `<session>`. Run `/relay-exercise-run --session
    <session>` first."*
 
-**Locate the exercise file** within the resolved session:
+**Goal mode** (step-order walk across all exercise files in the session):
+1. Enumerate files matching `exercise/<session>/step-<N>-*.md` AND
+   dated re-run variants `exercise/<session>/step-<N>-<cap>-<YYYY-MM-DD>.md`
+   (with optional same-day collision suffix `-2`, `-3`).
+2. Parse each file's `## Findings` section. Filter to files with at
+   least one `**Status:** draft` finding.
+3. Sort by `<N>` ascending. For a step with MULTIPLE matching files
+   (e.g., both `step-2-cap.md` and `step-2-cap-2026-04-16.md` exist
+   because the user re-exercised that step): walk ONLY the most-recent
+   file. Dated variant wins over undated; within the same date, highest
+   collision suffix wins (`-3` > `-2` > no suffix). Older variants keep
+   their findings on disk as historical record but are not re-walked
+   by the no-args walk. Explicit targeting (`/relay-exercise-file <N>`
+   or a direct filename) bypasses the most-recent rule.
+4. Walk the resulting queue file-by-file. For each file, run Phases
+   2–4 as today (the per-finding walk is mode-agnostic; only Phase 1
+   and Phase 4's back-reference rewriting are goal-mode-aware).
+5. If the walk produces no files with drafts, report: *"No goal-session
+   exercise files with pending findings in session `<session>`. Run
+   `/relay-exercise-run --session <session>` to exercise more steps."*
+
+**Locate the exercise file** (explicit capability arg) — mode-aware:
+
+**Default mode**:
 - Look for `.relay/exercise/<session>/<capability>.md`
 - If not found, check for dated re-run variants:
   `.relay/exercise/<session>/<capability>-YYYY-MM-DD.md` — use the
@@ -62,6 +86,23 @@ next capability to act on (top to bottom, groups in order):
   error: *"This exercise has already been archived by `/relay-resolve`.
   To re-exercise, run `/relay-exercise-run <capability>` (creates a
   fresh exercise file in the active session)."*
+
+**Goal mode**:
+- If arg is numeric `<N>`, look for
+  `.relay/exercise/<session>/step-<N>-*.md`. If multiple files match
+  (shouldn't happen by contract but guard anyway), pick the most-recent
+  per the step 3 tie-break rule above and list the others as
+  historical.
+- If arg is a capability name, look for
+  `.relay/exercise/<session>/step-*-<capability>.md`. On multi-match
+  (two Journey steps exercised the same capability), prompt:
+  *"Exercise files at step <A> and step <B>. Which? [A/B/both]"*.
+- If not found via step-prefixed form, fall back to
+  `.relay/exercise/<session>/<capability>.md` (robustness for hybrid
+  sessions, if any arise).
+- Dated re-run variants applied to both forms per the same most-
+  recent rule.
+- Error path unchanged.
 
 **Parse the exercise file:**
 Read the `## Findings` section. Each finding is a `### Finding N: <title>`

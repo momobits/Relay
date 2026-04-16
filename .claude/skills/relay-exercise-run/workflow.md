@@ -62,8 +62,60 @@ Aggregate Capabilities — sessions have fixed scope at creation):
   For any that are `exercised` or `filed`, offer to include them (re-run
   mode applies per capability).
 
-Store the resolved `(session, capability, mode)` tuple set for Phase 3
-onward.
+Store the resolved `(session, capability, run_mode)` tuple set (where
+`run_mode` ∈ `first / re-run`) for Phase 3 onward. This tuple set is
+populated ONLY for default-mode sessions; goal-mode sessions proceed via
+Phase 1b below.
+
+### 1b. Mode detection + goal-mode walk-queue resolution
+
+Read the `*Mode:*` header from `.relay/exercise/<session>/_control.md`.
+
+- **`*Mode:* default`** — the tuple set built above is the walk target.
+  Skip to Phase 2.
+
+- **`*Mode:* goal`** — the capability/group lookup above is inapplicable
+  (goal sessions' Session Capabilities rows track `exists` steps' Project
+  Match slugs; the Journey table is the source of truth for per-step
+  state). Discard any tuple set produced above. Parse the `## Journey`
+  table from `_control.md` and build an ordered walk queue of
+  `(session, step_number, journey_row)` tuples per the user's argument:
+
+  | User argument            | Walk queue                                         |
+  |--------------------------|----------------------------------------------------|
+  | None (no positional arg) | All rows with Status ∈ `exists | gap`, ascending Step order |
+  | `<N>` (integer)          | Just row with Step=N                               |
+  | `<N>-<M>` (range)        | Rows Step=N..M inclusive, ascending                |
+  | `<capability-name>`      | Rows where `Project Match` == name (exists/exercised/adapted) OR `Required Capability` == name (gap). On multi-match, prompt *"Steps <A> and <B> match. Target which? [<A>/<B>/both]"* |
+  | `<group-name>`           | Rows where Project Match is in that group AND Status ∈ `exists | gap` (gap rows in the group skipped silently — group is meaningful only for exists rows) |
+
+  Terminal rows (Status ∈ `exercised | failed | adapted | skipped`) are
+  skipped UNLESS the user targeted them explicitly by step number or
+  capability name. In explicit-target mode, treat as re-exercise
+  (Phase 3.5 3b writes a dated variant filename).
+
+- **Missing `*Mode:*` header** — self-heal per `/relay-exercise/workflow.md`
+  Contracts "Mode" entry. Infer goal mode if `## Journey` section present;
+  infer default mode if `## Context Chains` section present. Rewrite the
+  header to match, log the correction, and continue with the inferred
+  mode. If BOTH sections are present (corrupt), error loudly and refuse:
+  *"Session `<session>` has both Journey and Context Chains sections —
+  ambiguous mode. Inspect `_control.md` manually and remove the unused
+  section before re-running."*
+
+**Walk-queue validation:** if the resolved queue is empty (all targeted
+steps already terminal, or capability/group name matched no non-terminal
+rows), report:
+*"All targeted journey steps in session `<session>` are already
+terminal. Use `/relay-exercise-run <N>` to re-walk a specific step."*
+Exit cleanly.
+
+At the end of Phase 1, the skill has either
+`(session, tuple_set, run_mode)` for default mode or
+`(session, walk_queue, goal_narrative)` for goal mode. Phase 2 (launch
+recipe) and Phase 3 (trust gate) are shared across both modes. Phase 3.5
+handles goal-mode walks; Phases 4–7 handle default-mode per-capability
+walks.
 
 ## Phase 2 — Launch recipe resolution
 
@@ -138,7 +190,10 @@ On yes, re-enter Phase 2. On no, abort the session cleanly.
 
 ## Phase 3 — Trust gate
 
-Before any command runs, show the user what's about to happen:
+Before any command runs, show the user what's about to happen. Prompt
+text depends on session mode:
+
+**Default mode** (from Phase 1):
 
 > *"I'm about to exercise `<capability-name>` against this project. This
 > will run real commands (see launch recipe above) and may modify state
@@ -147,8 +202,21 @@ Before any command runs, show the user what's about to happen:
 >
 > *Continue? [y/n]"*
 
-The trust gate fires **once per `/relay-exercise-run` session**, not per
-capability. In a group sweep, users confirm once at the start.
+**Goal mode** (walk queue from Phase 1b):
+
+> *"I'm about to walk the journey for session `<session-slug>`
+> (goal: `<first-120-chars-of-narrative>`). <Q> steps queued
+> (<E> exists, <G> gaps). Existing-capability steps will run real
+> commands per the launch recipe (may modify state: DBs, files,
+> caches). Gaps will prompt per-step for alternative/file/skip; no
+> commands run until you pick `alternative`. Per-step exercise files
+> will be named `step-<N>-<capability>.md`.*
+>
+> *Continue? [y/n]"*
+
+The trust gate fires **once per `/relay-exercise-run` invocation** (not
+per session or per capability). In a default-mode group sweep or a
+goal-mode walk, users confirm once at the start.
 
 **Destructive command re-prompts:** within the session, subsequent commands
 run silently UNLESS a command looks destructive. Re-prompt with the
@@ -162,6 +230,338 @@ Destructive heuristics (case-insensitive match): command contains any of
 
 Aborting at the trust gate ends the session cleanly. No exercise file is
 written and no hub changes are made.
+
+**Post-trust-gate dispatch:** if session mode is `goal` (from Phase 1b),
+proceed to Phase 3.5 (goal-mode walk). If mode is `default`, continue to
+Phase 4 as today.
+
+## Phase 3.5 — Goal-mode walk (goal sessions only)
+
+For each step in the walk queue (from Phase 1b), in order, execute the
+sub-flows below. After the queue is exhausted — or the user aborts or
+replans — jump to Phase 8 for the summary. Default-mode sessions skip
+this entire phase.
+
+### 3a. Branch on current Journey row Status
+
+| Status on entry                                  | Action                                              |
+|--------------------------------------------------|-----------------------------------------------------|
+| `exists`                                         | Run 3b (exercise)                                   |
+| `gap`                                            | Run 3c (adaptive handling)                          |
+| `exercised` / `failed` / `adapted` / `skipped`   | Terminal row. If the user targeted this step explicitly (step number or capability name), treat as re-exercise: `exercised/failed` → 3b; `adapted` → 3b against the current Project Match (alternative slug); `skipped` → 3c (user may now want to file or substitute). If the step is in the walk queue from a no-arg walk (implicit targeting), skip silently and continue. |
+
+### 3b. Exercise existing capability sub-flow
+
+Runs for `exists` steps (first-time walk) or explicit re-exercise of
+`exercised/failed/adapted` steps.
+
+1. **Establish prerequisites** — run Phase 4 logic, but derive the
+   prerequisite list from **earlier Journey steps** instead of
+   `_control.md` Context Chains (goal mode has no Context Chains
+   section). Prerequisite list: `[earlier Journey row's Project Match
+   for each row with Step < current AND Status ∈ {exists, exercised,
+   adapted}, in ascending Step order]`. Skip `gap` and `skipped`
+   earlier steps — nothing to run. Fresh prereqs per spec Phase 4
+   contract (no state reuse from prior step in this walk).
+
+2. **Execute scenarios** — run Phase 5 logic, with **step-scoped
+   scenario design**. The scenario-design prompt MUST include:
+   - the goal narrative (from `_control.md` Session Scope)
+   - the current Journey row's `Required Capability`
+   - the row's `Notes` column
+   - the Required Capabilities and Project Matches of the immediate
+     previous and next Journey steps
+   The model uses these to bias scenarios toward what the step means
+   INSIDE this journey (e.g., for step 2 `outline-chapter` in a
+   book-writing goal, test outlines that could feed a later chapter-
+   expansion step, not generic outline edge cases). Scenario count
+   and structure follow Phase 5's existing contract.
+
+3. **Write the exercise file** at
+   `.relay/exercise/<session>/step-<N>-<capability>.md` where `<N>`
+   is the Journey Step number (bare integer, no zero-padding) and
+   `<capability>` is the row's Project Match (for `exists`) or the
+   alternative slug (for `adapted` re-exercise). Re-run within the
+   session: `step-<N>-<capability>-<YYYY-MM-DD>.md`; same-day
+   collision suffix `-2`, `-3`. Findings format contract (8 bold-
+   labeled fields) unchanged from Phase 6.
+
+4. **Determine Journey row transition**:
+   - All scenarios completed AND no finding is classified as
+     `would-be-issue` severity `high` with an observed behavior that
+     blocks the step's core function → `exists/exercised/adapted →
+     exercised` (or `failed → exercised` on a successful re-run).
+   - At least one `would-be-issue` severity `high` finding with
+     observed behavior that prevents the step from producing its
+     intended output → `exists/exercised/adapted → failed` (or
+     `failed → failed` on a confirming re-run).
+   - Non-blocking findings (severity < high, OR high-severity but the
+     step still produced usable output) → `exercised` with a
+     rationale appended to the Journey row's Notes. "Exercised-with-
+     findings" is a judgment call; the runner records the reasoning
+     in Notes.
+
+5. **Update Journey row**:
+   - `Status` → new value per step 4
+   - `Project Match` → unchanged (always the slug of the capability
+     actually exercised; for `adapted` re-exercise, already the
+     alternative's slug)
+   - `Notes` append (append-only, chronological):
+     `YYYY-MM-DD: exercised → step-<N>-<cap>.md; <short rationale>`
+     or `YYYY-MM-DD: failed — <short rationale>`.
+
+6. **Prerequisite-failure case**: if step 1 fails (command errors,
+   service unavailable), Journey row Status stays `exists` (no
+   transition — prereq failures are environmental, not capability
+   defects). Notes append: `YYYY-MM-DD: prerequisite-failed —
+   <what failed>`. Prompt: *"Prerequisite for step <N> failed
+   (`<what>`). Options: [skip-to-next / abort / retry-after-fix]"*.
+
+### 3c. Handle gap adaptively sub-flow
+
+Runs for `gap` steps (first-time walk) or explicit re-visit of
+`skipped` steps.
+
+1. **Propose alternative.** Scan master hub Aggregate Capabilities for
+   semantic-overlap candidates against the Required Capability + the
+   row's Notes + the goal narrative. Pick the best match; label
+   confidence `high / medium / low / none`:
+   - `high` — capability name closely matches or is a documented
+     synonym (e.g., `append-message` proposed; existing `log-message`
+     in project with matching signature)
+   - `medium` — capability covers a superset or subset of the
+     required behavior (e.g., generic `summarize` for
+     `summarize-session`)
+   - `low` — capability has tangential overlap; workable with
+     adaptation
+   - `none` — no viable candidate in Aggregate Capabilities
+
+2. **Prompt the user — no default; force explicit choice**:
+
+   > *"Step <N>: `<required-slug>` is a gap. Options:*
+   >
+   > *  `alternative` — substitute an existing capability; runs the
+   >     exercise sub-flow → Status becomes `adapted`*
+   > *  `file`        — seed a feature brainstorm at
+   >     `.relay/features/<required-slug>_brainstorm.md` → Status
+   >     becomes `skipped`*
+   > *  `skip`        — move on without filing → Status becomes
+   >     `skipped`*
+   >
+   > *Suggested alternative: `<best-alt-slug>` (confidence: <level>).
+   >  Reason: <one-line>. If confidence is `none`, you may propose a
+   >  different capability of your own.*
+   >
+   > *Pick [alternative/file/skip]: "*
+
+   Empty input or unrecognized input → re-prompt (does NOT auto-
+   select).
+
+3. **On `alternative`**:
+   a. User confirms the runner's proposal OR names a different
+      capability. Validate the user's choice against master hub
+      Aggregate Capabilities. If the named capability isn't in
+      Aggregate Capabilities, re-prompt with the candidate list or
+      `file / skip`.
+   b. Run sub-flow 3b against the alternative. Exercise file named
+      `step-<N>-<alternative-cap>.md`.
+   c. Journey row update (applied in 3d after 3b completes):
+      - `Status` → `adapted`
+      - `Project Match` → alternative slug (was `—` for the gap)
+      - `Notes` append: `YYYY-MM-DD: adapted — substituted <alt>
+        for gap <required-slug>: <rationale>`.
+
+4. **On `file`**:
+   a. Seed brainstorm at
+      `.relay/features/<required-slug>_brainstorm.md` using the
+      goal-mode seed template from Feature 6-1 (see
+      `/relay-exercise/workflow.md` Phase 6 file-now block).
+      `*Source:*` line: `*Source: exercise/<session>/_control.md
+      journey step <N>*`. Slug-collision suffix `_2`, `_3`, ...
+      applied against all four filer-tracked directories
+      (`.relay/issues/`, `.relay/archive/issues/`,
+      `.relay/features/`, `.relay/archive/features/`).
+   b. Journey row update (applied in 3d after brainstorm write):
+      - `Status` → `skipped`
+      - `Notes` append: `YYYY-MM-DD: gap filed →
+        features/<required-slug>_brainstorm.md`
+   c. **Orphan-recovery contract** (mirrors Feature 6-1 Phase 6):
+      the brainstorm file is written BEFORE 3d's atomic `_control.md`
+      rewrite. If 3d aborts (mtime mismatch, disk full, Ctrl+C), the
+      brainstorm exists on disk but the Journey row still shows `gap`
+      (no `skipped` transition, no `gap filed →` marker). The runner
+      MUST print to stderr at abort time:
+      *"[relay-exercise-run] Orphan brainstorm(s) from aborted walk
+      — delete or move before retry: features/<slug>_brainstorm.md
+      [... one path per file-decision that succeeded this run ...]"*
+      Do NOT auto-delete — the user may have invested reading time
+      in the seeded Goal paragraph. `/relay-scan`'s next run flags
+      the dangling `*Source:*` header as a warning.
+
+5. **On `skip`**:
+   a. No file created.
+   b. Journey row update (applied in 3d):
+      - `Status` → `skipped`
+      - `Notes` append: `YYYY-MM-DD: skipped by user`.
+
+### 3d. Persist after each step
+
+After every step (3b or 3c):
+
+1. **Read `_control.md` mtime** before mutation (matches the existing
+   Phase 7a concurrent-modification guard). Abort with
+   *"Session control file was modified externally since this step
+   began; rerun `/relay-exercise-run` to continue from current
+   state."* on mtime change. See 3c.4.c for orphan-recovery on abort.
+
+2. **Mutate Journey row** (per 3b step 5 or 3c step 3c/4b/5b).
+
+3. **Mutate Session Capabilities row** (lockstep with Journey —
+   plan-level Decision #1). Session Capabilities Status vocabulary
+   remains `mapped / exercised / filed / stale` per Feature 5-1 —
+   the Journey row's `failed / adapted / skipped` are per-step
+   Journey outcomes, not per-capability Session Capabilities
+   outcomes:
+   - On `exists → exercised` transition: find the row by Project
+     Match slug. Update `Status` → `exercised`, `Last Updated` →
+     today, `Exercise File` →
+     `exercise/<session>/step-<N>-<cap>.md`, `Findings Filed` →
+     `—`. Latest-wins applies on multi-step: two Journey steps
+     sharing a Project Match leave one row with the most-recently-
+     written exercise file.
+   - On `exists → failed` transition: same row mutation as
+     `exercised` above — the capability WAS exercised (just with
+     negative outcome). Session Capabilities `Status` → `exercised`.
+     The `failed` outcome lives in the Journey row's Status column
+     and Notes, not here.
+   - On `gap → adapted` transition: the alternative's Project Match
+     slug becomes the row key. Look up the slug in Session
+     Capabilities:
+     - If an existing row matches: UPDATE it per the
+       `exists → exercised` rule above (Status → `exercised`).
+     - If NOT found (alternative wasn't in the original journey's
+       `exists` steps): INSERT a new row. Look up the alternative's
+       group from master hub Aggregate Capabilities (the same hub
+       `### Group:` sub-heading where 3c.1 found the candidate).
+       Use that group for the new row. If Aggregate Capabilities
+       places the alternative under `### Ungrouped`, insert under
+       the session's Ungrouped group (create the `### Ungrouped`
+       sub-heading in the session's Session Capabilities table if
+       one doesn't yet exist). New row fields: `Status` =
+       `exercised`, `Last Updated` = today, `Exercise File` =
+       step-prefixed path, `Findings Filed` = `—`.
+   - On `gap → skipped` transition (file or skip): NO Session
+     Capabilities update. The gap's Required Capability was never
+     a project capability; Session Capabilities tracks project
+     capabilities only.
+
+4. **Recompute Session Coverage**. Count Session Capabilities rows
+   by Status (`mapped`, `exercised`, `filed`, `stale`). Derive the
+   two gap-bucket rows from the Journey table:
+   - `gaps-filed` = count of Journey rows whose Notes column contains
+     the literal marker `gap filed →` (Feature 6-1's Phase 6 writes
+     this on `file-now`; 6-2's 3c.4 `file` branch writes it too).
+     Includes rows currently Status=`skipped` as well as rows still
+     at `gap`.
+   - `gaps-recorded` = count of Journey rows currently Status=`gap`
+     WITHOUT the `gap filed →` marker in Notes. Shrinks as the walk
+     transitions gaps to `adapted` / `skipped`.
+   The original 6-1 invariant `R + F = G` holds AT SESSION CREATION.
+   During the walk, R shrinks (as gaps leave `gap` status); F may
+   grow (if the walk files more brainstorms); R + F may be less than
+   G (original gap count) as adapted / user-skipped rows leave both
+   buckets. Session Log is the chronological record of every
+   transition; these two counters are the current-state summary.
+
+5. **Append Session Log entry**:
+   `**YYYY-MM-DD** — /relay-exercise-run: step <N> <action>.
+   <short summary>.`
+   Actions: `exercised`, `failed`, `adapted (<alt>)`,
+   `filed (<path>)`, `skipped`, `prerequisite-failed`, `replanned`,
+   `aborted`.
+
+6. **Update `*Last activity:*` header** to today.
+
+7. **Write `_control.md` atomically** (single write; mtime check from
+   step 1 already performed).
+
+8. **Master hub Aggregate Capabilities update** (for Journey
+   transitions `exists → exercised`, `exists → failed`,
+   `gap → adapted` — same upsert rules as Feature 5-1's Phase 7b):
+   - `Status` → `exercised` for all three transition types. The hub
+     vocabulary stays `mapped / exercised / filed / stale`; Journey
+     `failed` / `adapted` are per-step outcomes, not per-capability
+     hub state. For `failed` transitions, record the failure
+     rationale in the Journey row's Notes; the hub row stays at
+     `exercised` (capability WAS invoked).
+   - `Last Updated` → today
+   - `Latest Session` → current session
+   - `Latest Exercise File` → `exercise/<session>/step-<N>-<cap>.md`
+     (for `adapted`, `<cap>` is the alternative's slug)
+   - `Latest Findings Filed` → `—` (reset for fresh exercise)
+   - Recompute Aggregate Coverage from Aggregate Capabilities counts.
+   For `gap → skipped` (file or skip): NO Aggregate Capabilities
+   update. The gap's Required Capability is not a project
+   capability.
+
+### 3e. Continuation decision between steps
+
+Default: continue silently to the next step in the walk queue.
+**Pause and prompt** when:
+
+- The just-completed step produced ≥ 1 `high`-severity
+  `would-be-issue` finding (same as current Phase 7 sweep pause
+  rule).
+- The just-completed step was `adapted` AND the runner detects an
+  output/input mismatch with the next step's Required Capability
+  (heuristic: compare the alternative's documented output shape
+  against the next step's Required Capability + Notes; if
+  incompatible, surface the concern).
+- The just-completed step was `failed`.
+
+Prompt:
+
+> *"Step <N> completed with <event: high-severity finding |
+> adapted-with-mismatch | failed>. Options:*
+>
+> *  `continue` — proceed to step <N+1>*
+> *  `replan`   — halt to revise the remaining journey (see replan
+>     flow below)*
+> *  `abort`    — stop the walk; session stays `active` for later
+>     resume*
+>
+> *Pick:"*
+
+**Replan sub-flow** (scope: remaining steps only):
+
+1. Display the current Journey table with `[locked]` prefix on
+   terminal rows. Locked rows cannot be edited (Status, Required
+   Capability, and Project Match are frozen; Notes are frozen).
+2. User may: reorder remaining (non-locked) steps; add new steps;
+   drop remaining steps; re-mark Status on non-locked rows (e.g.,
+   `gap → exists` when a newly-noticed capability fits); adjust
+   Notes on non-locked rows.
+3. Attempts to edit a locked row trigger:
+   *"Step <N> is terminal — use `/relay-exercise-run <N>` to
+   re-walk it explicitly."* Edit rejected; replan UI stays open.
+4. New steps added during replan get step numbers starting from
+   `max(existing step numbers) + 1` — terminal step numbers are
+   never reused. This guarantees `step-<N>-<cap>.md` filename
+   uniqueness across re-walks.
+5. Persist `_control.md` (atomic mtime-checked rewrite).
+6. Append Session Log:
+   `**YYYY-MM-DD** — /relay-exercise-run: replanned.
+   <changes summary>.`
+7. Resume walking at the first non-terminal step in the updated
+   Journey.
+
+**Abort sub-flow**:
+
+1. All state is already persisted per-step (3d); abort is a
+   filesystem no-op beyond logging.
+2. Exit cleanly; session `*Status:*` stays `active`.
+3. Jump to Phase 8 (summary covers only steps walked this
+   invocation).
 
 ## Phase 4 — Establish prerequisite state
 
@@ -413,18 +813,122 @@ When the sweep is complete (or the user bails out), move to Phase 8.
 
 ## Phase 8 — Summary + navigation
 
-Report:
+Report — mode-aware:
+
+**Default mode**:
 - Capabilities exercised this session
-- Total findings by classification (issue / brainstorm / note) and severity
-- State changes NOT cleaned up (refer user to `## State Changes` in each
-  exercise file)
+- Total findings by classification (issue / brainstorm / note) and
+  severity
+- State changes NOT cleaned up (refer user to `## State Changes` in
+  each exercise file)
 - Any prerequisite failures that aborted specific capabilities
 
-Next step:
+**Goal mode**:
+- Journey progress: `<terminal>/<total>` (breakdown: `<E>` exercised,
+  `<F>` failed, `<A>` adapted, `<S>` skipped)
+- Findings: total + breakdown by classification and severity (same
+  structure as default mode)
+- Gaps handled this session: adapted count, filed count, skipped count
+- Adaptations list: `step <N>: <required-slug> → <alt-slug>
+  (<rationale>)` for each `adapted` step this invocation
+- Un-walked steps (if user aborted): list step numbers + current
+  Statuses remaining in the walk queue
+- State changes NOT cleaned up (refer user to `## State Changes` in
+  each step-prefixed exercise file)
+
+Next step — mode-aware:
+
+**Default mode**:
 - If findings exist: *"Run `/relay-exercise-file <capability-name>` to
   walk the findings and file issues or brainstorms."*
 - If no findings: *"No findings this session. Run `/relay-exercise-run`
   again with another capability or group."*
+
+**Goal mode**:
+- If any exercise files produced findings: *"Run `/relay-exercise-file
+  --session <session>` to walk findings across all exercise files in
+  this session in step order."*
+- If all queued steps are terminal and no findings: *"Journey complete.
+  Run `/relay-scan` and `/relay-order` to integrate any seeded
+  brainstorms into the backlog."*
+- If un-walked steps remain (user aborted): *"Run `/relay-exercise-run`
+  again to resume from step <first-non-terminal>."*
+
+## Contracts
+
+**Mode dispatch**: `*Mode:*` header in `_control.md` is canonical; Phase
+1b reads it and branches. Self-heal permitted when the header is missing
+but exactly one of `## Journey` / `## Context Chains` is present; must
+rewrite the header to match the inferred mode and log the correction.
+Corrupt case (both sections present) errors loudly.
+
+**Step-prefixed exercise filenames** (goal mode):
+`exercise/<session>/step-<N>-<capability>.md` where `<N>` is the Journey
+Step (bare integer, no zero-padding) and `<capability>` is the Project
+Match slug. Re-runs within the session use dated variant
+`step-<N>-<capability>-<YYYY-MM-DD>.md`; same-day collisions append
+`-2`, `-3`. Default-mode filenames stay `<capability>.md` (unchanged).
+
+**Journey state machine** (goal mode only):
+- Phase-5-emitted:   `exists | gap`
+- Runner-terminal:   `exercised | failed | adapted | skipped`
+- Allowed transitions: `exists → exercised | failed`;
+                     `gap → adapted | skipped`
+- Explicit re-exercise (user targets a terminal step by number or
+  capability): `exercised/failed/adapted → exercised/failed`;
+  `skipped → adapted/skipped`
+- `gap → exercised` is PROHIBITED directly. A gap that turns out to
+  map to an existing capability must be reclassified via `/replan` to
+  `exists` first, then exercised on resume.
+
+**Session Capabilities lockstep** (goal mode): each
+`exists → exercised / failed` and `gap → adapted` transition also
+mutates the Session Capabilities row for the exercised/alternative
+capability (latest-wins on Exercise File when multiple Journey steps
+share a Project Match). `gap → skipped` does NOT touch Session
+Capabilities (the gap's Required Capability is not a project
+capability).
+
+**Capability-level status vocabulary unchanged** (both master hub
+Aggregate Capabilities AND per-session `_control.md` Session
+Capabilities): `mapped / exercised / filed / stale`. The Journey
+table's `failed / adapted / skipped` values are per-step outcomes, not
+per-capability outcomes. Mapping for goal-mode Journey transitions:
+- `exists → exercised` and `exists → failed` both set capability
+  Status to `exercised` (capability was successfully invoked; failure
+  rationale lives in the Journey row's Notes).
+- `gap → adapted` sets the alternative capability's Status to
+  `exercised` (may INSERT a new Session Capabilities row if the
+  alternative wasn't in the original journey's `exists` steps; group
+  sourced from master hub Aggregate Capabilities, Ungrouped fallback).
+- `gap → skipped` does not update Session Capabilities or Aggregate
+  Capabilities (the gap's Required Capability is not a project
+  capability).
+
+**Prerequisite derivation** (goal mode): for step N, prereqs = earlier
+Journey rows (Step < N) with Status ∈ `{exists, exercised, adapted}` in
+ascending Step order. Skip `gap` and `skipped` — nothing to run. Fresh
+prereqs per step (no state reuse from prior step in the same walk).
+
+**Trust gate scope**: fires once per `/relay-exercise-run` invocation
+(not per session or per capability). Destructive-command re-prompts
+fire per command as today.
+
+**Gap prompt default**: no default — force explicit
+`alternative / file / skip` choice. Empty input re-prompts; does not
+auto-select.
+
+**Replan scope**: remaining (non-terminal) steps only. Terminal rows
+are locked; attempted edits error with *"use /relay-exercise-run <N>
+to re-walk it explicitly"*. New steps added during replan get fresh
+step numbers `max(existing) + 1` to preserve `step-<N>-<cap>.md`
+filename uniqueness across re-walks.
+
+**Atomic `_control.md` writes**: read mtime → mutate in-memory → single
+write. If mtime differs at write time, abort with the concurrent-
+modification error (matches existing Phase 7a contract). Orphan-
+recovery: brainstorms written by 3c.4 `file` before a failed
+`_control.md` write are reported to stderr; not auto-deleted.
 
 ## Navigation
 

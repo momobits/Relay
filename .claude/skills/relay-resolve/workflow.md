@@ -148,12 +148,36 @@ Close it out.
        or `archive/features/<file>.md`). Look for a `*Source:*` header
        line with the pattern:
 
-           *Source: exercise/<session>/<capability>.md finding <N>*
+           *Source: exercise/<session>/<filename>.md finding <N>*
            OR
-           *Source: archive/exercise/<session>/<capability>.md finding <N>*
+           *Source: archive/exercise/<session>/<filename>.md finding <N>*
 
-       Parse `<session>` and `<capability>` from the matched path
-       (split on `/`).
+       where `<filename>` is one of:
+       - `<capability>` (default-mode, legacy)
+       - `step-<M>-<capability>` (goal-mode; Feature 6-2 step-prefixed)
+       - `<capability>-<YYYY-MM-DD>` or
+         `step-<M>-<capability>-<YYYY-MM-DD>` (dated re-run of either,
+         optional `-2`, `-3` collision suffix)
+
+       Parse in two phases:
+
+       1. **Path parse**: split the matched path on `/` to extract
+          `<session>` and `<filename-without-md>`.
+
+       2. **Filename parse**: match `<filename-without-md>` against the
+          regex
+          `^(?:step-(\d+)-)?([a-z0-9-]+?)(?:-\d{4}-\d{2}-\d{2}(?:-\d+)?)?$`.
+          Captures:
+          - Group 1 (optional): `<step_number>` as integer, or null
+            for default-mode
+          - Group 2: `<capability>` (the kebab-case capability slug)
+
+       Use the parsed `<capability>` for row lookups in 5e.iv and
+       5e.v. Use the full matched `<filename>.md` (from path parse)
+       for path rewrites in 5e.i–iii (moves, path substitutions).
+       Log messages include `<step_number>` (when present) so output
+       reads like `archived exercise \`step-2-outline-chapter\``
+       instead of losing the step context.
 
        - If no `*Source:*` line, the item didn't come from an exercise.
          Skip to the next archived item.
@@ -232,21 +256,46 @@ Close it out.
             Log each rewrite.
 
        iv.  Update the session `_control.md` row at
-            `.relay/exercise/<session>/_control.md` for this capability:
+            `.relay/exercise/<session>/_control.md`. Key the row
+            lookup on the **stripped `<capability>`** from 5c's
+            filename parse (NOT the composite step-prefixed filename).
+            Update:
             - `Exercise File` column:
-              `exercise/<session>/<capability>.md` →
-              `archive/exercise/<session>/<capability>.md`
+              `exercise/<session>/<filename>.md` →
+              `archive/exercise/<session>/<filename>.md`
+              (full `<filename>` from 5c's path parse — for goal
+              mode this preserves the `step-<N>-` prefix)
             - `Last Updated` column: today's date
 
+            In goal mode, also leave the Journey row untouched — this
+            archival is a path rewrite, not a state transition. Journey
+            Status stays at its current terminal value.
+
        v.   Update the master hub Aggregate Capabilities row at
-            `.relay/relay-exercise.md` for this capability:
+            `.relay/relay-exercise.md`. Key the row lookup on the
+            **stripped `<capability>`** (same as 5e.iv). Update:
             - `Latest Exercise File` column:
-              `exercise/<session>/<capability>.md` →
-              `archive/exercise/<session>/<capability>.md`
+              `exercise/<session>/<filename>.md` →
+              `archive/exercise/<session>/<filename>.md`
             - `Last Updated` column: today's date (YYYY-MM-DD)
             - The `Status` column stays at `filed` — "filed" already
               captures "all findings processed and resolved"; there
               is no separate archived status.
+
+            **Multi-step → same-capability guard**: when two Journey
+            steps both exercised the same project capability (e.g.,
+            steps 2 and 5 both Project-Match `outline-chapter`), the
+            Aggregate Capabilities row's `Latest Exercise File`
+            reflects the most-recently-written step. When resolving
+            an issue sourced from the OLDER step's exercise file,
+            check: if the current `Latest Exercise File` value does
+            NOT match the path being rewritten, SKIP this row update
+            (the column already points at a newer exercise file;
+            rewriting would corrupt history). Log the skip:
+            `[relay-resolve] Aggregate Capabilities row for
+            <capability> points at a newer exercise; skipping archival
+            rewrite for <filename>.md.` The per-session `_control.md`
+            Session Capabilities row (5e.iv) follows the same guard.
 
        vi.  Append a Session Log entry to the session `_control.md`:
             `**YYYY-MM-DD** — /relay-resolve: archived exercise

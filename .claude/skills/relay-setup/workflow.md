@@ -46,10 +46,17 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
+### 3.2.2 — Goal-driven exercise runner
+- `/relay-exercise-run` gains goal-mode walk: adaptive gap handling (alternative / file / skip per gap, no default), step-prefixed exercise filenames `step-<N>-<capability>.md`, journey state machine (`exists → exercised/failed`, `gap → adapted/skipped`), mid-walk continuation prompts on high-severity findings / adaptation mismatches / failures, replan flow for revising remaining steps.
+- `/relay-exercise-file` gains `--session <slug>` flag and goal-session no-args walk in step order (was: default-mode no-args only).
+- `/relay-scan` Sessions Summary for goal sessions now includes terminal breakdown (exercised / adapted / failed / skipped) alongside remaining gaps.
+- `/relay-resolve` tolerates step-prefixed exercise filenames in `*Source:*` headers (two-phase parse: path split + filename regex); multi-step same-capability archive-guard prevents clobbering newer exercise pointers.
+- `/relay-help` recommends the goal-mode walk when an active goal session has non-terminal Journey rows.
+- Skill count unchanged (20).
+
 ### 3.2.1 — Goal-driven exercise mode
 - `/relay-exercise "<goal>"` activates goal mode: top-down journey discovery; each step mapped to an existing capability (`exists`) or a recorded gap (`gap`); gaps can be seeded as feature brainstorms on the spot via the gap-triage prompt.
 - Goal-mode `_control.md` uses a `## Journey` table in place of `## Context Chains`; `*Mode:* goal` header distinguishes from default.
-- `/relay-exercise-run` gains goal-mode walk (adaptive gap handling, step-prefixed exercise filenames) — ships alongside 6-1 if bundled, or as 3.2.2 otherwise.
 - `/relay-cleanup` and `/relay-scan` extended to parse goal-mode `*Source: exercise/<session>/_control.md journey step <N>*` back-references.
 - `/relay-scan` Sessions Summary recompute shipped (previously claimed in 3.2.0 but missing from code; re-landed here).
 - Skill count unchanged (20).

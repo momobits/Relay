@@ -76,13 +76,24 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
         0 (empty session), write Summary as the literal string
         `empty` rather than an empty/comma-only string.
       - `goal` → recompute Summary from `## Journey`:
-        `<N>-step journey, <G> gaps` where N = total Journey table
-        rows (INCLUDING rows with terminal Status values like
-        `exercised`, `failed`, `adapted`, `skipped`) and G = count of
-        rows whose current Status is `gap`. Example:
-        `6-step journey, 2 gaps`. N=0 is impossible (Phase 5 of
-        `/relay-exercise` prohibits empty journeys), so no fallback
-        needed for goal mode.
+        `<N>-step journey, <breakdown>` where:
+        - N = total Journey table rows (INCLUDING all terminal rows).
+        - `<breakdown>` = non-zero Status counts joined by `, ` in the
+          fixed order `<E> exercised`, `<A> adapted`, `<F> failed`,
+          `<S> skipped`, `<G> gaps` (where each count counts rows
+          whose current Status column equals that value). Omit
+          zero-count entries.
+        - If ALL rows are still `gap` (fresh post-mapping session, no
+          runner activity yet), breakdown = `<G> gaps`.
+        - If ALL rows are terminal (walk complete), breakdown omits
+          `gaps`.
+        Examples:
+        - Fresh goal session: `6-step journey, 6 gaps`
+        - Mid-walk: `6-step journey, 3 exercised, 1 adapted, 2 gaps`
+        - Complete walk: `6-step journey, 3 exercised, 1 adapted,
+          1 failed, 1 skipped`
+        N=0 is impossible (Phase 5 of `/relay-exercise` prohibits
+        empty journeys), so no fallback needed for goal mode.
       - Missing `*Mode:*` header → fall back to default-mode formula
         and emit a `[relay-scan] Warning: session <session> has no
         *Mode:* header; assuming default mode for Summary` message.
