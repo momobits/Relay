@@ -17,6 +17,7 @@ const RELAY_SKILLS = [
   "relay-discover",
   "relay-exercise",
   "relay-exercise-file",
+  "relay-exercise-migrate",
   "relay-exercise-run",
   "relay-help",
   "relay-new-issue",
@@ -66,6 +67,7 @@ and what's next. Skills are in \`.agents/skills/relay-*/\`.
 | /relay-exercise | Map project capabilities for stress-testing |
 | /relay-exercise-run | Execute scenarios against a capability |
 | /relay-exercise-file | Walk findings and file issues or brainstorm seeds |
+| /relay-exercise-migrate | One-time migration from 3.1.0 flat exercise layout |
 | /relay-analyze | Validate item before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |

@@ -34,7 +34,7 @@ The bigger the project, the worse it gets. You repeat yourself, re-explain archi
 
 Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **19 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
+- **20 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
 - **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
 - **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
 - **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
