@@ -40,11 +40,34 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
    - Exercise back-reference update (conditional):
      Check for a `*Source:*` header line. Two patterns are recognized.
 
-     **Default-mode pattern** (unchanged from 5-1):
+     **Default-mode pattern** (finding-derived brainstorms; covers
+     both default-mode and goal-mode finding-to-seed flow):
 
-     `*Source: exercise/<session>/<capability>.md finding <N>*` or
-     `*Source: archive/exercise/<session>/<capability>.md finding <N>*`.
-     Parse `<session>` and `<capability>` from the matched path.
+     `*Source: exercise/<session>/<filename>.md finding <N>*` or
+     `*Source: archive/exercise/<session>/<filename>.md finding <N>*`
+     where `<filename>` is one of:
+     - `<capability>` (default mode)
+     - `<capability>-<YYYY-MM-DD>[-<N>]` (default mode, dated)
+     - `step-<M>-<capability>` (goal mode; Feature 6-2)
+     - `step-<M>-<capability>-<YYYY-MM-DD>[-<N>]` (goal mode, dated)
+
+     Parse in two phases:
+
+     1. **Path parse**: split the matched path on `/` to extract
+        `<session>` and `<filename-without-md>`.
+
+     2. **Filename parse**: match `<filename-without-md>` against
+        the regex
+        `^(?:step-(\d+)-)?([a-z0-9-]+?)(?:-\d{4}-\d{2}-\d{2}(?:-\d+)?)?$`.
+        Captures:
+        - Group 1 (optional): `<step_number>` as integer, null for
+          default-mode
+        - Group 2: `<capability>` (the kebab-case capability slug,
+          used for hub / _control.md row lookups below)
+
+     Use `<capability>` (group 2) for sub-steps a and a2 (row
+     lookups by capability name). Use the full `<filename>.md`
+     (from path parse) for sub-step b (exercise file path read).
 
      If matched, apply default-mode rewrites:
 
@@ -61,9 +84,11 @@ main workflow (/relay-resolve archives COMPLETE brainstorms automatically).
          `Findings Filed` column.
 
      b. In the source exercise file (read its path from the `*Source:*`
-        line — may be .relay/exercise/<session>/<capability>.md or
-        .relay/archive/exercise/<session>/<capability>.md), find the
-        finding with `Status: filed: features/<slug>_brainstorm.md`
+        line — may be .relay/exercise/<session>/<filename>.md or
+        .relay/archive/exercise/<session>/<filename>.md where
+        `<filename>` includes any step-prefix and date-suffix from
+        the parsed pattern), find the finding with
+        `Status: filed: features/<slug>_brainstorm.md`
         and rewrite to
         `Status: filed: archive/features/<slug>_brainstorm.md`.
 

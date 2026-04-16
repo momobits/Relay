@@ -159,6 +159,11 @@ Close it out.
          `step-<M>-<capability>-<YYYY-MM-DD>` (dated re-run of either,
          optional `-2`, `-3` collision suffix)
 
+       Gap-seed sources (`exercise/<session>/_control.md journey
+       step <N>`) are a separate pattern, not a `<filename>` shape.
+       They are handled in the bullet list below as a dedicated skip
+       branch, not via the two-phase parse.
+
        Parse in two phases:
 
        1. **Path parse**: split the matched path on `/` to extract
@@ -185,12 +190,22 @@ Close it out.
          exercise file is already archived. No further work needed.
          Skip to the next archived item.
        - If the `*Source:*` path is in active form
-         (`exercise/<session>/<capability>.md`), read the referenced
-         exercise file at `.relay/exercise/<session>/<capability>.md`.
+         (`exercise/<session>/<filename>.md`), read the referenced
+         exercise file at `.relay/exercise/<session>/<filename>.md`.
          If the file does not exist (e.g., manually deleted), log a
          warning: "Source exercise file `<path>` not found; cannot
          determine resolution state. Skipping exercise archival for
          this item." Skip to the next archived item.
+       - If the `*Source:*` line matches the goal-mode gap-seed
+         pattern (`exercise/<session>/_control.md journey step <N>`
+         or `archive/exercise/<session>/_control.md journey step <N>`),
+         skip exercise archival — gap seeds reference a journey step
+         in `_control.md`, not a discrete exercise file. The Journey
+         row in `_control.md` tracks the seeded brainstorm via its
+         Notes column; brainstorm-seed file archival is handled by
+         `/relay-cleanup` (for abandoned seeds) or this workflow's
+         step 3 (for successfully-resolved seeds) — step 5c has no
+         exercise file to archive. Skip to the next archived item.
 
    5d. Determine if the exercise is fully resolved:
 
@@ -222,23 +237,23 @@ Close it out.
    5e. Archive the exercise file (single-archival sweep):
 
        i.   Move the exercise file:
-            `.relay/exercise/<session>/<capability>.md` →
-            `.relay/archive/exercise/<session>/<capability>.md`
+            `.relay/exercise/<session>/<filename>.md` →
+            `.relay/archive/exercise/<session>/<filename>.md`
 
             Create `.relay/archive/exercise/<session>/` on demand if
             it doesn't yet exist. (Earlier resolves may have already
             created the archive subfolder for this session.)
 
-            If the exercise file has a timestamped re-run filename
-            (e.g., `outline-chapter-2026-04-12.md`), preserve the
-            timestamp in the archive filename.
+            (Timestamp and step-prefix are both carried by
+            `<filename>` — no separate handling needed.)
 
-            Log: "Archived exercise: exercise/<session>/<capability>.md →
-                  archive/exercise/<session>/<capability>.md"
+            Log: "Archived exercise:
+                  exercise/<session>/<filename>.md →
+                  archive/exercise/<session>/<filename>.md"
 
        ii.  In the newly-archived exercise file, rewrite any
-            `**Status:** kept: exercise/<session>/<capability>.md` lines
-            to `**Status:** kept: archive/exercise/<session>/<capability>.md`.
+            `**Status:** kept: exercise/<session>/<filename>.md` lines
+            to `**Status:** kept: archive/exercise/<session>/<filename>.md`.
 
        iii. Rewrite `*Source:*` header lines in all issue and feature
             files (both active and already-archived) that reference
@@ -249,9 +264,9 @@ Close it out.
             - .relay/archive/features/*.md
 
             For any file containing
-            `*Source: exercise/<session>/<capability>.md finding <N>*`,
+            `*Source: exercise/<session>/<filename>.md finding <N>*`,
             rewrite to
-            `*Source: archive/exercise/<session>/<capability>.md finding <N>*`.
+            `*Source: archive/exercise/<session>/<filename>.md finding <N>*`.
 
             Log each rewrite.
 

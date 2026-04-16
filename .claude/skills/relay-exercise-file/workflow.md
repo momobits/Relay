@@ -66,8 +66,11 @@ multi-active prompt, or no-active error). Store the resolved `<session>`.
    by the no-args walk. Explicit targeting (`/relay-exercise-file <N>`
    or a direct filename) bypasses the most-recent rule.
 4. Walk the resulting queue file-by-file. For each file, run Phases
-   2–4 as today (the per-finding walk is mode-agnostic; only Phase 1
-   and Phase 4's back-reference rewriting are goal-mode-aware).
+   2–4 as today. The per-finding walk is mode-agnostic;
+   Phase 1 resolves `<exercise_filename>` (step-prefixed in goal
+   mode); Phase 3d templates and Phase 4 archival both reference
+   `<exercise_filename>.md`, so goal-mode and default-mode flows
+   use the same code path with the filename as the only variant.
 5. If the walk produces no files with drafts, report: *"No goal-session
    exercise files with pending findings in session `<session>`. Run
    `/relay-exercise-run --session <session>` to exercise more steps."*
@@ -103,6 +106,25 @@ multi-active prompt, or no-active error). Store the resolved `<session>`.
 - Dated re-run variants applied to both forms per the same most-
   recent rule.
 - Error path unchanged.
+
+**Capture the resolved filename:**
+
+Once one of the above branches resolves to a concrete file,
+capture the basename (without `.md`) as `<exercise_filename>`.
+Its shape is one of:
+
+- `<capability>` — default mode, canonical form
+- `<capability>-<YYYY-MM-DD>[-<N>]` — default mode, dated re-run
+- `step-<step>-<capability>` — goal mode, canonical form
+- `step-<step>-<capability>-<YYYY-MM-DD>[-<N>]` — goal mode, dated re-run
+
+Every downstream reference to the exercise file (Phase 3d
+templates, Phase 4 archival and row updates) uses
+`<exercise_filename>.md` — not the bare `<capability>.md` form.
+Default mode without a dated re-run collapses to `<capability>`
+as before, so existing behavior is preserved. In the goal-mode
+no-args walk (queue of step-prefixed files), `<exercise_filename>`
+is re-bound per walk iteration to the current file's basename.
 
 **Parse the exercise file:**
 Read the `## Findings` section. Each finding is a `### Finding N: <title>`
@@ -384,7 +406,7 @@ original wording.
    # Issue: <finding title>
 
    *Created: YYYY-MM-DD by /relay-exercise-file*
-   *Source: exercise/<session>/<capability>.md finding <N>*
+   *Source: exercise/<session>/<exercise_filename>.md finding <N>*
    *Severity: <severity>*
 
    ## Problem Statement
@@ -411,14 +433,16 @@ original wording.
    ```
 
    The `*Source:*` header line is the critical back-reference. It uses the
-   **active** exercise file path (`exercise/<session>/<capability>.md`).
+   **active** exercise file path
+   (`exercise/<session>/<exercise_filename>.md`).
    `/relay-resolve` will rewrite this to
-   `archive/exercise/<session>/<capability>.md` when it later archives
-   the exercise file.
+   `archive/exercise/<session>/<exercise_filename>.md` when it later
+   archives the exercise file.
 
 4. **Update the exercise file** at
-   `.relay/exercise/<session>/<capability>.md` — change the finding's
-   Status field: `**Status:** draft` → `**Status:** filed: issues/<slug>.md`
+   `.relay/exercise/<session>/<exercise_filename>.md` — change the
+   finding's Status field: `**Status:** draft` →
+   `**Status:** filed: issues/<slug>.md`
 
 5. **Update the exercise file's summary header** — recount all finding
    Status fields and update the `*Findings:*` line at the top of the file:
@@ -448,7 +472,7 @@ original wording.
    # Feature Brainstorm: <finding title>
 
    *Created: YYYY-MM-DD by /relay-exercise-file (seeded from exercise)*
-   *Source: exercise/<session>/<capability>.md finding <N>*
+   *Source: exercise/<session>/<exercise_filename>.md finding <N>*
    *Status: BRAINSTORMING*
 
    (Lifecycle: BRAINSTORMING → READY FOR DESIGN → DESIGN COMPLETE → COMPLETE)
@@ -461,7 +485,7 @@ original wording.
    *Seeded from exercise session `<session>` for capability `<capability>`.*
    *For full context — the scenarios that produced this finding, the
    state at the time, and related observations — read
-   [exercise/<session>/<capability>.md](../exercise/<session>/<capability>.md).*
+   [exercise/<session>/<exercise_filename>.md](../exercise/<session>/<exercise_filename>.md).*
 
    [Finding's context as the seed of the problem statement.]
 
@@ -483,13 +507,13 @@ original wording.
    ```
 
    The markdown link to the exercise file uses the **active** path
-   (relative depth `../exercise/<session>/<capability>.md` resolves
-   from `.relay/features/`). `/relay-resolve` rewrites it when archiving
-   the exercise file.
+   (relative depth `../exercise/<session>/<exercise_filename>.md`
+   resolves from `.relay/features/`). `/relay-resolve` rewrites it
+   when archiving the exercise file.
 
 4. **Update the exercise file** at
-   `.relay/exercise/<session>/<capability>.md` — change the finding's
-   Status field: `**Status:** draft` →
+   `.relay/exercise/<session>/<exercise_filename>.md` — change the
+   finding's Status field: `**Status:** draft` →
    `**Status:** filed: features/<slug>_brainstorm.md`
 
 5. **Update the exercise file's summary header** — recount and update the
@@ -505,14 +529,14 @@ No new file is created. Notes are observations kept for future context,
 not tracked work items.
 
 1. **Update the exercise file** at
-   `.relay/exercise/<session>/<capability>.md` — change the finding's
-   Status field: `**Status:** draft` →
-   `**Status:** kept: exercise/<session>/<capability>.md`
+   `.relay/exercise/<session>/<exercise_filename>.md` — change the
+   finding's Status field: `**Status:** draft` →
+   `**Status:** kept: exercise/<session>/<exercise_filename>.md`
 
    The `kept:` path is the **active** exercise file location.
    `/relay-resolve` will rewrite this to
-   `archive/exercise/<session>/<capability>.md` when the exercise
-   file is archived.
+   `archive/exercise/<session>/<exercise_filename>.md` when the
+   exercise file is archived.
 
 2. **Update the exercise file's summary header** — recount and update the
    `*Findings:*` line (same logic as issue filing step 5).
@@ -576,8 +600,8 @@ Then update the **session `_control.md` row** at
 
 1. **Status** → `filed`
 2. **Last Updated** → today (YYYY-MM-DD)
-3. **Exercise File** → `exercise/<session>/<capability>.md` (unchanged
-   for now — may be updated to archive path in step 7 below)
+3. **Exercise File** → `exercise/<session>/<exercise_filename>.md`
+   (unchanged for now — may be updated to archive path in step 7 below)
 4. **Findings Filed** → comma-separated list of the new issue/brainstorm
    paths created during this and any prior filing sessions for this
    exercise. Format: `issues/<slug>.md, features/<slug>_brainstorm.md`
@@ -598,7 +622,8 @@ a. **Status** → `filed`
 b. **Last Updated** → today
 c. **Latest Session** unchanged (same session)
 d. **Latest Exercise File** unchanged (or, if direct archival ran in
-   step 7 below, update to `archive/exercise/<session>/<capability>.md`)
+   step 7 below, update to
+   `archive/exercise/<session>/<exercise_filename>.md`)
 e. **Latest Findings Filed** → same comma-separated list as the
    `_control.md` row, or `—` for zero filed entries.
 f. Recompute Aggregate Coverage: decrement `exercised` by 1, increment
@@ -611,30 +636,33 @@ f. Recompute Aggregate Coverage: decrement `exercised` by 1, increment
    Archive the exercise file directly:
 
    i.   Move the exercise file:
-        `.relay/exercise/<session>/<capability>.md` →
-        `.relay/archive/exercise/<session>/<capability>.md`
+        `.relay/exercise/<session>/<exercise_filename>.md` →
+        `.relay/archive/exercise/<session>/<exercise_filename>.md`
 
         Create `.relay/archive/exercise/<session>/` on demand if it
         doesn't yet exist.
 
-        If the exercise file has a timestamped re-run filename
-        (e.g., `<capability>-YYYY-MM-DD.md`), preserve the timestamp
-        in the archive filename.
+        (Timestamp and step-prefix are both carried by
+        `<exercise_filename>` — no separate handling needed.)
 
-        Log: "Archived exercise: exercise/<session>/<capability>.md →
-              archive/exercise/<session>/<capability>.md"
+        Log: "Archived exercise:
+              exercise/<session>/<exercise_filename>.md →
+              archive/exercise/<session>/<exercise_filename>.md"
 
    ii.  In the newly-archived exercise file, rewrite any
-        `**Status:** kept: exercise/<session>/<capability>.md` lines to
-        `**Status:** kept: archive/exercise/<session>/<capability>.md`.
+        `**Status:** kept: exercise/<session>/<exercise_filename>.md`
+        lines to
+        `**Status:** kept: archive/exercise/<session>/<exercise_filename>.md`.
 
    iii. Update the session `_control.md` row:
-        - `Exercise File` column: `exercise/<session>/<capability>.md` →
-          `archive/exercise/<session>/<capability>.md`
+        - `Exercise File` column:
+          `exercise/<session>/<exercise_filename>.md` →
+          `archive/exercise/<session>/<exercise_filename>.md`
 
    iv.  Update the master hub Aggregate Capabilities row:
-        - `Latest Exercise File` column: `exercise/<session>/<capability>.md` →
-          `archive/exercise/<session>/<capability>.md`
+        - `Latest Exercise File` column:
+          `exercise/<session>/<exercise_filename>.md` →
+          `archive/exercise/<session>/<exercise_filename>.md`
         - `Last Updated`: today; Status stays `filed`.
 
    v.   Append a Session Log entry to `_control.md`:

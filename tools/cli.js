@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "3.1.0";
+const VERSION = "3.2.3";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const AGENTS_SKILLS_DIR = ".agents/skills";
 const MARKER_START = "<!-- relay-workflow:start -->";
