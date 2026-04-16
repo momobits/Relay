@@ -639,6 +639,29 @@ commands, query endpoints, file inspection. If the project has no
 observable state affordance for a particular change, note in State Changes:
 *"DB/state changes made but not enumerable — inspect manually."*
 
+**Symbol fidelity:** when a scenario surfaces a language-
+level error (stderr containing patterns like
+`AttributeError`, `NameError`, `NoMethodError`,
+`NoSuchMethodError`, `MissingMethodException`,
+`Cannot find name`, `undefined`, `not defined`,
+`cannot find function`, or equivalent for the target
+runtime — including compile-time "not found" errors for
+statically-typed languages), extract the literal
+symbol name from the error message and use that exact
+string in the resulting finding's Title, Observed,
+Reproduction, and Suggested direction fields. Do not
+paraphrase to a DB column name, a documented-in-docs name,
+or a remembered name from prereqs — the stderr symbol is the
+authoritative reality. Example: stderr
+`AttributeError: 'Memory' object has no attribute
+'create_memory'` → finding fields name `create_memory`,
+not `create_agent_memory` or any synonym.
+`/relay-exercise-file`'s Phase 3d symbol-verification
+pre-step greps the project source before filing a finding;
+capturing symbols at source here keeps that pre-step quiet
+and prevents drift from cementing into issue filenames and
+`relay-ordering.md` links.
+
 ## Phase 6 — Write the exercise file
 
 Determine the file path (always nested under the resolved session):

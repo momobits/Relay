@@ -224,6 +224,145 @@ After editing, re-display the edited version and return to the prompt
 
 ### 3d. Persist the decision
 
+**Pre-step (file and seed only): Verify symbol fidelity**
+
+Before writing a new issue or brainstorm file, verify that any
+symbol names referenced in the finding's Title, Observed,
+Reproduction, and Suggested direction fields appear in the
+project source. This catches drift where the runner paraphrased
+a function/column name instead of copying the literal symbol.
+The pre-step does NOT run for `keep` or `skip` decisions —
+nothing is written outward; the exercise finding preserves the
+original wording.
+
+1. **Extract candidate symbols** from Title, Observed,
+   Reproduction, and Suggested direction. Candidates:
+   - Backtick-wrapped identifiers (`` `name` ``)
+   - Fenced code block contents (interior tokens)
+   - Bare snake_case tokens ≥ 4 chars (must contain `_`)
+   - Bare camelCase tokens ≥ 4 chars (lowercase→uppercase
+     transition)
+   - Dotted method references (`module.method`) — record the
+     trailing component
+   Skip:
+   - Stopword list: `error`, `errors`, `value`, `values`,
+     `result`, `results`, `none`, `null`, `true`, `false`,
+     `status`, `empty`, `data`, `input`, `output`, `return`,
+     `response`, `request`, `success`, `failure`, `missing`,
+     `invalid`, `valid`, `function`, `method`, `class`,
+     `object`
+   - Pure English words (< 4 chars or all-lowercase without
+     underscores or camelCase)
+   - Path-like tokens (contain `/` or `\`) — they resolve via
+     filesystem, not source grep
+
+   **Skip rules apply AFTER extraction**, including extraction
+   from backticks and code fences. A backtick-wrapped path-like
+   token (e.g., `` `path/to/file.py` ``) is extracted then
+   skipped by the path-like rule.
+
+   **De-duplicate candidates by exact string match** (case-
+   sensitive — `create_memory` and `Create_Memory` are different
+   identifiers in most languages). Record which fields each
+   surviving candidate appeared in (used by the prompt's
+   "(in <fields>)" preview — list all fields, comma-separated).
+
+   **Cap at 10 candidates** AFTER de-duplication (first 10 by
+   first-appearance order). When the cap fires, log
+   `"[relay-exercise-file] Candidate cap reached (10/<N>
+   extracted); remaining candidates not verified for finding
+   <title>."` so the user knows verification was incomplete.
+
+2. **Grep project source** for each candidate. Exclude:
+   `.relay/`, `.claude/`, `.agents/`, `.git/`, `node_modules/`,
+   `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`,
+   `target/`, `.next/`, `.pytest_cache/`. Match as a standalone
+   identifier (word-boundary; identifier characters are
+   `[A-Za-z0-9_]`). Case-sensitive.
+
+3. **For each candidate with zero matches**, compute the
+   closest match via Levenshtein distance over the set of
+   identifiers discovered in the included source (build the
+   identifier set once per verification pass and reuse it for
+   every missing candidate). Pick top-1 within distance ≤ 3.
+   On Levenshtein ties, prefer the alphabetically-first
+   identifier.
+   **Capture the suggestion's source location**: file path +
+   first matching line number + the line content (truncated to
+   100 chars). Record this during the identifier-set scan
+   (free at scan time; lookup only on miss).
+   If no identifier is within distance ≤ 3, report
+   "no close match" (no source location to capture).
+
+4. **Prompt the user — one prompt per missing candidate, in
+   extraction order:**
+
+   > *"Finding references `<name>` (in <fields>), but it wasn't
+   > found in the project source.*
+   >
+   > *Closest match: `<closest>` (distance: <N>).*
+   > *Defined at `<file>:<line>` — `<one-line context>`*
+   >
+   > *Options:*
+   > *  `use <closest>` — rewrite this symbol in the new
+   >    issue/brainstorm file (exercise finding preserved).*
+   > *  `edit manually` — revise fields via the 3c edit flow.*
+   > *  `file as-is` — write unchanged; record in
+   >    `## Drift Warnings` section of the new file.*
+   >
+   > *Pick [use / edit / as-is]: "*
+
+   If no close match exists (step 3 returned "no close match"),
+   omit the `use` option from the menu — only `edit manually`
+   and `file as-is` are offered.
+
+5. **On `use`:** replace `<name>` with `<closest>` in the
+   in-memory copies of Title, Observed, Reproduction, and
+   Suggested direction (literal string replacement). Leave the
+   exercise file's original finding untouched (consistent with
+   3c's "edits apply only to the file being created" rule).
+   After all missing candidates are processed, the slugification
+   in the persist step below uses the (possibly corrected)
+   title.
+
+6. **On `edit manually`:** route to 3c (Handle `edit`). On
+   return, re-run steps 1–4 against the edited fields
+   (idempotent — a correct edit produces zero misses and the
+   prompt doesn't fire). The verification block runs at most
+   **4 times total per finding** (1 initial + up to 3
+   re-verifications after `edit manually`). On the 4th run
+   (or whenever the cap is reached), log
+   `"[relay-exercise-file] Symbol verification iteration
+   cap reached (4 runs); proceeding with current fields."`
+   and proceed to the persist step regardless of remaining
+   misses.
+
+7. **On `file as-is`:** leave fields unchanged. Record the
+   entry in an in-memory `drift_warnings` list for this
+   finding (one entry per `as-is` decision). **At persist
+   time** (after all candidates are processed and the user has
+   moved into the file/seed branch below), if `drift_warnings`
+   is non-empty, append a `## Drift Warnings` section to the
+   new file IMMEDIATELY AFTER the final required section
+   (`## Affected Files` for issues, `## Feature Breakdown` for
+   brainstorms), with one bullet per recorded warning:
+   ```
+   - `<name>` — referenced in <fields>, not found in project
+     source (filed without correction).
+   ```
+   If `drift_warnings` is empty (zero `file as-is` decisions
+   this finding), the persist step does NOT write the
+   `## Drift Warnings` section header at all. The section is
+   never present in files with zero unverified symbols.
+
+8. When all candidates are processed (verified, corrected, or
+   marked as drift), proceed to the persist branch for the
+   chosen classification (file or seed) below. The persist step
+   is responsible for emitting the `## Drift Warnings` section
+   per step 7's rule.
+
+---
+
 **`would-be-issue` → `file`:**
 
 1. **Slugify the title:** lowercase, replace non-alphanumeric with
@@ -262,6 +401,13 @@ After editing, re-display the edited version and return to the prompt
 
    ## Affected Files
    [Inferred from finding context, or "To be determined during analysis"]
+
+   <!-- The persist step appends a `## Drift Warnings`
+        section after `## Affected Files` ONLY when the
+        pre-step recorded ≥1 `file as-is` decision for this
+        finding. Format and append rule live in Phase 3d
+        Pre-step step 7. Section omitted entirely when zero
+        unverified symbols. -->
    ```
 
    The `*Source:*` header line is the critical back-reference. It uses the
@@ -327,6 +473,13 @@ After editing, re-display the edited version and return to the prompt
 
    ## Feature Breakdown
    *(to be filled in by /relay-brainstorm when this seed is developed)*
+
+   <!-- The persist step appends a `## Drift Warnings`
+        section after `## Feature Breakdown` ONLY when the
+        pre-step recorded ≥1 `file as-is` decision for this
+        finding. Format and append rule live in Phase 3d
+        Pre-step step 7. Section omitted entirely when zero
+        unverified symbols. -->
    ```
 
    The markdown link to the exercise file uses the **active** path
@@ -591,5 +744,14 @@ When finished, tell the user:
   `draft`
 - If the exercise file was modified externally between filing decisions,
   the filer detects the change and aborts safely
+- Phase 3d's symbol-verification pre-step (file/seed only)
+  greps the project source for symbol names referenced in
+  finding fields. On miss, prompts `use <closest> / edit
+  manually / file as-is`. The `use` and `edit manually`
+  options correct the new file in place; `file as-is`
+  preserves the finding and records the unverified symbol in
+  a `## Drift Warnings` section appended to the new file.
+  Exercise findings are never modified by the pre-step
+  (consistent with 3c's edit semantics).
 - This skill is project-agnostic — it adapts to whatever exercise files
   exist, regardless of the target project's nature

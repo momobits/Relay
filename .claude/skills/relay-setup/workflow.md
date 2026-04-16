@@ -46,6 +46,12 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
+### 3.2.3 — Exercise filer symbol verification
+- `/relay-exercise-file` Phase 3d gains a symbol-verification pre-step (file and seed branches only): extracts candidate symbols from finding Title/Observed/Reproduction/Suggested direction, greps the project source, prompts `use <closest> / edit manually / file as-is` on misses. Closest match via Levenshtein over the project identifier set, top-1 within distance ≤ 3, with source-location preview (`file:line` + one-line context) so the user can spot semantic flips before accepting. Corrections rewrite the new issue/brainstorm file only; the exercise finding is preserved.
+- New optional `## Drift Warnings` section appended to issue and brainstorm files when the user picks `file as-is` for any unverified symbol (omitted entirely when zero unverified symbols).
+- `/relay-exercise-run` Phase 5 gains a `**Symbol fidelity:**` sub-rule: when a scenario surfaces a language-level error (`AttributeError`, `NameError`, `NoMethodError`, `MissingMethodException`, `cannot find function`, etc.), copy the literal symbol from stderr into finding fields verbatim — do not paraphrase. Reduces drift at source.
+- Skill count unchanged (20).
+
 ### 3.2.2 — Goal-driven exercise runner
 - `/relay-exercise-run` gains goal-mode walk: adaptive gap handling (alternative / file / skip per gap, no default), step-prefixed exercise filenames `step-<N>-<capability>.md`, journey state machine (`exists → exercised/failed`, `gap → adapted/skipped`), mid-walk continuation prompts on high-severity findings / adaptation mismatches / failures, replan flow for revising remaining steps.
 - `/relay-exercise-file` gains `--session <slug>` flag and goal-session no-args walk in step order (was: default-mode no-args only).
