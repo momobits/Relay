@@ -52,9 +52,9 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    never `_control.md`):
 
    Preflight: if the master hub has `## Capabilities` but no
-   `## Sessions` heading, the project is in legacy 3.1.0 shape.
-   Skip this entire sub-step and emit a single warning:
-   `[relay-scan] Warning: master hub is in 3.1.0 shape; run /relay-exercise-migrate first.`
+   `## Sessions` heading, the project is in an unsupported legacy
+   shape. Skip this entire sub-step and emit a single warning:
+   `[relay-scan] Warning: master hub is in an unsupported legacy shape; resolve the data layer before re-running scan.`
    The dangling-ref block below applies the same guard (pre-existing
    scan blind spot; acceptable to share the warning).
 

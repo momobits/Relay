@@ -38,16 +38,13 @@ Store the goal narrative as `<goal>` for downstream phases.
   `## Sessions` heading and at least one row, or `## Aggregate Capabilities`
   if Sessions is empty) → **refresh state**
 - If `.relay/relay-exercise.md` exists with a `## Capabilities` heading
-  AND no `## Sessions` heading → **legacy 3.1.0 layout detected**;
-  stop with: *"This project's exercise hub is in the 3.1.0 flat
-  layout. The 3.2.x exercise pipeline expects session subfolders.
-  See .relay/version.md changelog (3.2.0 entry) for the upgrade path
-  before re-running /relay-exercise. Refusing to operate to prevent
-  data loss."*
+  AND no `## Sessions` heading → **unsupported hub format**;
+  stop with: *"This project's exercise hub is in an unsupported legacy
+  layout (has `## Capabilities` but no `## Sessions` heading). The
+  3.2.x exercise pipeline expects session subfolders. Refusing to
+  operate to prevent data loss."*
   Do NOT offer a rebuild on this branch — the legacy hub is preserved
-  intact for the upgrade path. (Per the 3.2.0 release boundary, this
-  message intentionally does not name the migration skill; users
-  discover it via the changelog.)
+  intact.
 - If `.relay/relay-exercise.md` exists, lacks `## Sessions`, AND lacks
   `## Capabilities` → **truly unparseable**; ask: *"I couldn't parse the
   existing master hub. Rebuild from scratch? This will lose the Sessions
@@ -55,10 +52,11 @@ Store the goal narrative as `<goal>` for downstream phases.
   under `.relay/exercise/` are not affected. [y/n]"*
   On yes → first-run state. On no → stop.
 
-**Goal mode against a legacy 3.1.0 hub**: treat as the legacy-refusal
-branch above. Do not create a goal session against an unmigrated hub —
-Phase 8's master hub upsert would fail, and we don't want to bypass
-the refusal that 5-1 installed to prevent data loss.
+**Goal mode against an unsupported legacy hub**: treat as the legacy-refusal
+branch above. Do not create a goal session against a hub in the
+unsupported legacy shape — Phase 8's master hub upsert would fail,
+and we don't want to bypass the refusal that 5-1 installed to prevent
+data loss.
 
 **Both first-run and refresh states create a new session.** Refresh state
 does NOT mutate prior sessions' subfolders or `_control.md` files — it

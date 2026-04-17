@@ -50,7 +50,7 @@ Create this file to track the installed Relay version:
 - `/relay-exercise-file` Phase 3d gains a symbol-verification pre-step (file and seed branches only): extracts candidate symbols from finding Title/Observed/Reproduction/Suggested direction, greps the project source, prompts `use <closest> / edit manually / file as-is` on misses. Closest match via Levenshtein over the project identifier set, top-1 within distance ≤ 3, with source-location preview (`file:line` + one-line context) so the user can spot semantic flips before accepting. Corrections rewrite the new issue/brainstorm file only; the exercise finding is preserved.
 - New optional `## Drift Warnings` section appended to issue and brainstorm files when the user picks `file as-is` for any unverified symbol (omitted entirely when zero unverified symbols).
 - `/relay-exercise-run` Phase 5 gains a `**Symbol fidelity:**` sub-rule: when a scenario surfaces a language-level error (`AttributeError`, `NameError`, `NoMethodError`, `MissingMethodException`, `cannot find function`, etc.), copy the literal symbol from stderr into finding fields verbatim — do not paraphrase. Reduces drift at source.
-- Skill count unchanged (20).
+- Skill count unchanged (19).
 
 ### 3.2.2 — Goal-driven exercise runner
 - `/relay-exercise-run` gains goal-mode walk: adaptive gap handling (alternative / file / skip per gap, no default), step-prefixed exercise filenames `step-<N>-<capability>.md`, journey state machine (`exists → exercised/failed`, `gap → adapted/skipped`), mid-walk continuation prompts on high-severity findings / adaptation mismatches / failures, replan flow for revising remaining steps.
@@ -58,22 +58,21 @@ Create this file to track the installed Relay version:
 - `/relay-scan` Sessions Summary for goal sessions now includes terminal breakdown (exercised / adapted / failed / skipped) alongside remaining gaps.
 - `/relay-resolve` tolerates step-prefixed exercise filenames in `*Source:*` headers (two-phase parse: path split + filename regex); multi-step same-capability archive-guard prevents clobbering newer exercise pointers.
 - `/relay-help` recommends the goal-mode walk when an active goal session has non-terminal Journey rows.
-- Skill count unchanged (20).
+- Skill count unchanged (19).
 
 ### 3.2.1 — Goal-driven exercise mode
 - `/relay-exercise "<goal>"` activates goal mode: top-down journey discovery; each step mapped to an existing capability (`exists`) or a recorded gap (`gap`); gaps can be seeded as feature brainstorms on the spot via the gap-triage prompt.
 - Goal-mode `_control.md` uses a `## Journey` table in place of `## Context Chains`; `*Mode:* goal` header distinguishes from default.
 - `/relay-cleanup` and `/relay-scan` extended to parse goal-mode `*Source: exercise/<session>/_control.md journey step <N>*` back-references.
 - `/relay-scan` Sessions Summary recompute shipped (previously claimed in 3.2.0 but missing from code; re-landed here).
-- Skill count unchanged (20).
+- Skill count unchanged (19).
 
 ### 3.2.0 — Exercise pipeline session subfolders + master hub
 - New on-disk layout: `.relay/exercise/<session>/` with `_control.md` per session (default and goal modes share the layout)
 - Master hub becomes a project-wide registry: Sessions table + Aggregate Capabilities + Aggregate Coverage
 - Per-session content (Context Chains, capabilities table, session log) lives in `_control.md`
 - Path contracts updated across `/relay-exercise`, `/relay-exercise-run`, `/relay-exercise-file`, `/relay-resolve`, `/relay-scan`, `/relay-help`, `/relay-cleanup`, `/relay-brainstorm`, `/relay-order`, `/relay-setup`
-- New skill `/relay-exercise-migrate` (one-time): converts 3.1.0 flat layout to 3.2.0 (20 skills total)
-- BREAKING for 3.1.0 users: run `/relay-exercise-migrate` once after upgrade
+- BREAKING for pre-3.2.0 users: existing `.relay/` exercise data in the legacy flat layout is not compatible with 3.2.x skills; the data layer must be restructured to session subfolders before 3.2.x skills can operate
 
 ### 3.1.0 — Exercise pipeline
 - Three new skills: /relay-exercise, /relay-exercise-run, /relay-exercise-file
@@ -121,7 +120,6 @@ Skills are in your platform's skill directory:
 | /relay-exercise | Map project capabilities |
 | /relay-exercise-run | Execute scenarios |
 | /relay-exercise-file | File findings |
-| /relay-exercise-migrate | One-time 3.1.0→3.2.x layout migration |
 | /relay-analyze | Validate before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |

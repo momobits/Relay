@@ -31,8 +31,8 @@ jobs:
         run: |
           SKILL_COUNT=$(ls -d .claude/skills/relay-*/ | wc -l)
           echo "Found $SKILL_COUNT relay skills"
-          if [ "$SKILL_COUNT" -ne 20 ]; then
-            echo "Error: Expected 20 relay skills, found $SKILL_COUNT"
+          if [ "$SKILL_COUNT" -ne 19 ]; then
+            echo "Error: Expected 19 relay skills, found $SKILL_COUNT"
             exit 1
           fi
 

@@ -34,7 +34,7 @@ The bigger the project, the worse it gets. You repeat yourself, re-explain archi
 
 Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **20 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
+- **19 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
 - **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
 - **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
 - **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
@@ -126,15 +126,18 @@ PREPARE       DISCOVERY        FEATURE          EXERCISE         CODE
 
 The flow between categories: discovery/feature skills create docs → prepare skills prioritize them → code skills implement them. Each skill tells you what to run next.
 
+**Goal mode** — `/relay-exercise "<your goal>"` — inverts the EXERCISE column's orientation: provide a target goal, and the skill builds a top-down journey of required capabilities with adaptive gap handling. See *Walkthrough: Exercising a Capability* below for details.
+
 ### Workflow Paths
 
-There are four entry points depending on what you're doing:
+There are five entry points depending on what you're doing:
 
 ```
-Specific issue     →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Systematic scan    →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Feature idea       →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
-Exercise session   →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Specific issue        →  /relay-new-issue  →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Systematic scan       →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Feature idea          →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Exercise session      →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Goal-driven exercise  →  /relay-exercise "<your goal>" → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 ```
 
 All paths converge on the same **code pipeline** for implementation, ensuring every change gets the same rigor regardless of how it was discovered.
@@ -175,7 +178,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 
 | Skill | Purpose |
 |-------|---------|
-| **/relay-exercise** | Map project capabilities. Produces `.relay/relay-exercise.md` hub with identity, capabilities, chains, and coverage. |
+| **/relay-exercise** | Map project capabilities. Produces the master hub (`.relay/relay-exercise.md`) as a project-wide registry, plus a per-session `_control.md` with identity, capabilities, chains, and coverage. Supports **goal mode** — pass `"<your goal>"` for top-down journey discovery. |
 | **/relay-exercise-run** | Execute realistic scenarios against a capability (or a group). Captures observations as structured findings. |
 | **/relay-exercise-file** | Walk findings with the user, file them as issues or brainstorm seeds, update the hub. |
 
@@ -286,6 +289,23 @@ Run `/relay-scan` and `/relay-order` to integrate the new issues and brainstorms
 
 When every issue and brainstorm that came from an exercise has been resolved through `/relay-resolve`, the exercise file is automatically archived to `.relay/archive/exercise/`. The full exercise history — scenarios, findings, outcomes — is preserved permanently.
 
+### Alternate: Goal Mode (top-down)
+
+Instead of starting bottom-up with a capability map, you can hand Relay a specific goal and let it build the journey:
+
+```
+/relay-exercise "outline a chapter with user-provided constraints"
+```
+
+Goal mode flips the orientation:
+
+- The skill builds a **Journey** — an ordered list of capabilities your goal requires — stored in the session's `_control.md`.
+- For each journey step, `/relay-exercise-run` either matches the step to an existing project capability (and exercises it) or treats the step as a **gap** to adapt around.
+- When a gap is encountered, the runner asks the user to choose: **alternative** (try a different capability), **file** (seed a brainstorm for the missing feature), or **skip** (continue without it).
+- Exercise files in goal-mode sessions carry a step prefix (`step-1-xxx.md`, `step-2-xxx.md`) so journey order stays visible in the filesystem.
+
+Goal-mode findings flow into the same filing step (`/relay-exercise-file`), issues, and brainstorm seeds as default mode. Everything downstream of Step 3 is identical — the only difference is how you enter the exercise flow.
+
 ---
 
 ## Lifecycle of an Item
@@ -382,12 +402,12 @@ your-project/
 │   ├── relay-config.md           # Project-specific settings
 │   ├── relay-status.md           # Generated — current state
 │   ├── relay-ordering.md         # Generated — prioritized work
-│   ├── relay-exercise.md         # Exercise pipeline hub (created by /relay-exercise)
+│   ├── relay-exercise.md         # Exercise pipeline master hub — project-wide registry (created by /relay-exercise)
 │   ├── issues/                   # Active bug/gap reports
 │   ├── features/                 # Active feature designs and brainstorms
 │   ├── implemented/              # Resolution docs for completed work
 │   ├── notebooks/                # Verification notebooks
-│   ├── exercise/                 # Active exercise sessions
+│   ├── exercise/                 # Active exercise sessions (each has its own <session>/_control.md)
 │   └── archive/
 │       ├── issues/               # Archived (resolved) issues
 │       ├── features/             # Archived (resolved) features
