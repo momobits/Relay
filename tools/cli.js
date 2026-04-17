@@ -165,6 +165,16 @@ function install(targetDir) {
   const claudeDest = path.join(targetDir, CLAUDE_SKILLS_DIR);
   const agentsDest = path.join(targetDir, AGENTS_SKILLS_DIR);
 
+  // Refuse if install target resolves to the source skills directory.
+  // Without this, fs.rmSync(dest) inside the install loop would delete
+  // the source before copyDirRecursive runs, silently destroying the
+  // working tree. Only claudeDest can collide (agentsDest uses a
+  // different leaf), so a single equality check is sufficient.
+  if (path.resolve(claudeDest) === path.resolve(skillsSrc)) {
+    console.error(`\n  Error: install target resolves to the source skills directory (${path.resolve(skillsSrc)}).\n  Refusing to install — this would delete the source. Use a different target directory.\n`);
+    process.exit(1);
+  }
+
   // Verify source skills exist
   if (!fs.existsSync(skillsSrc)) {
     console.error("Error: Relay skills not found in package. Reinstall with: npm install relay-workflow");
@@ -250,6 +260,17 @@ function install(targetDir) {
 function uninstall(targetDir) {
   const claudeDest = path.join(targetDir, CLAUDE_SKILLS_DIR);
   const agentsDest = path.join(targetDir, AGENTS_SKILLS_DIR);
+
+  // Refuse if uninstall target resolves to the source skills directory.
+  // Without this, fs.rmSync(dest) inside the uninstall loop would
+  // delete the source. Same structural bug as install() — symmetric
+  // because uninstall() also does unconditional fs.rmSync(dest).
+  const skillsSrc = path.join(__dirname, "..", CLAUDE_SKILLS_DIR);
+  if (path.resolve(claudeDest) === path.resolve(skillsSrc)) {
+    console.error(`\n  Error: uninstall target resolves to the source skills directory (${path.resolve(skillsSrc)}).\n  Refusing to uninstall — this would delete the source. Use a different target directory.\n`);
+    process.exit(1);
+  }
+
   let removed = 0;
 
   for (const skill of RELAY_SKILLS) {
