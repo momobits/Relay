@@ -46,11 +46,13 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
-### 3.2.3 — Exercise filer symbol verification
+### 3.2.3 — Exercise filer symbol verification + installer safety + migrate removal
 - `/relay-exercise-file` Phase 3d gains a symbol-verification pre-step (file and seed branches only): extracts candidate symbols from finding Title/Observed/Reproduction/Suggested direction, greps the project source, prompts `use <closest> / edit manually / file as-is` on misses. Closest match via Levenshtein over the project identifier set, top-1 within distance ≤ 3, with source-location preview (`file:line` + one-line context) so the user can spot semantic flips before accepting. Corrections rewrite the new issue/brainstorm file only; the exercise finding is preserved.
 - New optional `## Drift Warnings` section appended to issue and brainstorm files when the user picks `file as-is` for any unverified symbol (omitted entirely when zero unverified symbols).
 - `/relay-exercise-run` Phase 5 gains a `**Symbol fidelity:**` sub-rule: when a scenario surfaces a language-level error (`AttributeError`, `NameError`, `NoMethodError`, `MissingMethodException`, `cannot find function`, etc.), copy the literal symbol from stderr into finding fields verbatim — do not paraphrase. Reduces drift at source.
-- Skill count unchanged (19).
+- **Installer safety:** `tools/cli.js` `install()` and `uninstall()` now refuse when the target directory resolves to the source skills directory, preventing `node tools/cli.js install .` (run from the repo root) from wiping the repo's own `.claude/skills/relay-*` tree.
+- **`/relay-exercise-migrate` removed:** skill fully deleted from the package. Legacy-layout detection in `/relay-exercise`, `/relay-scan`, and `/relay-setup` now emits a generic "unsupported legacy shape" notice pointing users at the changelog rather than naming a migration skill that no longer exists. Skill count: **20 → 19**.
+- **Gap-seed template fix:** `/relay-exercise` goal-mode gap-seed Source pattern placeholder normalized from `<session-slug>` to `<session>`, matching the consumer-side `_control.md journey step <N>` grep invariant used by `/relay-cleanup`, `/relay-scan`, and `/relay-resolve`.
 
 ### 3.2.2 — Goal-driven exercise runner
 - `/relay-exercise-run` gains goal-mode walk: adaptive gap handling (alternative / file / skip per gap, no default), step-prefixed exercise filenames `step-<N>-<capability>.md`, journey state machine (`exists → exercised/failed`, `gap → adapted/skipped`), mid-walk continuation prompts on high-severity findings / adaptation mismatches / failures, replan flow for revising remaining steps.
