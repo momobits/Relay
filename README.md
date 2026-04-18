@@ -269,17 +269,42 @@ For each feature, in order:
 
 ## Walkthrough: Exercising a Capability
 
-### Step 1: Map (`/relay-exercise`)
+Each exercise is a **session** — a self-contained attempt to map or stress-test the project against some frame of reference. Sessions live under `.relay/exercise/<session>/`, each with its own `_control.md` holding the session's identity, capabilities, and (in goal mode) the journey. The master hub `.relay/relay-exercise.md` is a project-wide registry across all sessions (Sessions table + Aggregate Capabilities + Aggregate Coverage).
 
-Scan the project (docs + source), identify its capabilities, confirm identity with the user, and produce `.relay/relay-exercise.md` — the master map. Capabilities are grouped and linked by context chains reflecting how they are actually used.
+Two modes share the same pipeline — pick one based on what you already know going in:
+
+### Default mode — bottom-up capability map
+
+```
+/relay-exercise
+```
+
+Scans the project (docs + source), identifies what it can do, confirms identity with the user, and records capabilities + context chains in the session's `_control.md`. Use when you want a structural map of the project regardless of any specific goal.
+
+### Goal mode — top-down journey
+
+```
+/relay-exercise "outline a chapter with user-provided constraints"
+```
+
+Inverts the orientation: you hand it a target goal, and the skill constructs an ordered **Journey** — each step mapped to an existing project capability (`exists`) or recorded as a `gap` to handle at run time. Journey + `*Mode: goal*` header are stored in `_control.md`. Use when you want to stress-test whether a specific goal is achievable end-to-end.
+
+---
+
+### Step 1: Map (`/relay-exercise` or `/relay-exercise "<goal>"`)
+
+Either invocation creates the session subfolder at `.relay/exercise/<session>/`, writes `_control.md`, and adds a row to the master hub. Default mode produces a capabilities + context-chains view; goal mode produces a journey view. The session is the handle for every subsequent step.
 
 ### Step 2: Run (`/relay-exercise-run`)
 
-Pick a capability (no args → next uncovered), execute realistic scenarios against the real application, capture observations as structured findings classified as would-be-issues, would-be-brainstorms, or notes. Each scenario runs with prerequisite state established from context chains.
+Execute realistic scenarios against the real application. Findings are captured as structured would-be-issues, would-be-brainstorms, or notes.
+
+- **Default mode:** picks the next uncovered capability (no args) and runs scenarios with prerequisite state established from context chains.
+- **Goal mode:** walks the journey end-to-end. On `exists` steps it exercises the mapped capability; on `gap` steps it prompts **alternative** (try a different capability), **file** (seed a brainstorm for the missing feature), or **skip** (continue without it). Exercise files carry a step prefix (`step-1-xxx.md`, `step-2-xxx.md`) so journey order stays visible in the filesystem.
 
 ### Step 3: File (`/relay-exercise-file`)
 
-Walk the findings with the user. Each decision is persisted immediately. Would-be-issues become files in `.relay/issues/`. Would-be-brainstorms become seeded brainstorms in `.relay/features/` with partial content for `/relay-brainstorm` to develop later. Notes stay in the exercise file as preserved context.
+Walk the findings with the user. Each decision is persisted immediately. Would-be-issues become files in `.relay/issues/`. Would-be-brainstorms become seeded brainstorms in `.relay/features/` with partial content for `/relay-brainstorm` to develop later. Notes stay in the exercise file as preserved context. Both modes flow through the same filing step.
 
 ### Step 4: Integrate
 
@@ -287,24 +312,7 @@ Run `/relay-scan` and `/relay-order` to integrate the new issues and brainstorms
 
 ### Step 5: Auto-archival
 
-When every issue and brainstorm that came from an exercise has been resolved through `/relay-resolve`, the exercise file is automatically archived to `.relay/archive/exercise/`. The full exercise history — scenarios, findings, outcomes — is preserved permanently.
-
-### Alternate: Goal Mode (top-down)
-
-Instead of starting bottom-up with a capability map, you can hand Relay a specific goal and let it build the journey:
-
-```
-/relay-exercise "outline a chapter with user-provided constraints"
-```
-
-Goal mode flips the orientation:
-
-- The skill builds a **Journey** — an ordered list of capabilities your goal requires — stored in the session's `_control.md`.
-- For each journey step, `/relay-exercise-run` either matches the step to an existing project capability (and exercises it) or treats the step as a **gap** to adapt around.
-- When a gap is encountered, the runner asks the user to choose: **alternative** (try a different capability), **file** (seed a brainstorm for the missing feature), or **skip** (continue without it).
-- Exercise files in goal-mode sessions carry a step prefix (`step-1-xxx.md`, `step-2-xxx.md`) so journey order stays visible in the filesystem.
-
-Goal-mode findings flow into the same filing step (`/relay-exercise-file`), issues, and brainstorm seeds as default mode. Everything downstream of Step 3 is identical — the only difference is how you enter the exercise flow.
+When every issue and brainstorm that came from a session has been resolved through `/relay-resolve`, the session's exercise files are automatically archived to `.relay/archive/exercise/<session>/`. Session identity — and journey, if goal mode — is preserved permanently.
 
 ---
 
