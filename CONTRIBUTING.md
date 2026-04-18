@@ -77,15 +77,54 @@ refactor: simplify relay-scan in-progress detection
 
 2. Create `.claude/skills/relay-[name]/workflow.md` with the skill instructions
 
-3. Wire it in:
-   - Add Navigation entries in adjacent skills
-   - Add it to the relay-help Available Skills table
-   - Add it to relay-setup's version.md Skills Manifest template
-   - Add it to the README Skill Reference table
+3. Wire the skill into every sync surface. The skill count is hardcoded in
+   **nine** places that must stay in sync — missing any fails CI on release,
+   silently skips the skill at install, or produces user-facing doc drift.
+   See `.relay/relay-config.md:28–67` for the authoritative list with rationale.
 
-4. If it reads/writes to `.relay/relay-config.md`, add a Phase 2 step in relay-setup
+   **Code + CI (5 surfaces):**
+   - `tools/cli.js` — add the skill name to the `RELAY_SKILLS` array
+     (currently at `cli.js:12–32`).
+   - `tools/cli.js` — add a row to the `generateRelaySection()` table
+     (currently at `cli.js:48–86`).
+   - `.claude/skills/relay-*/` — creating the directory in step 1 above
+     satisfies this surface.
+   - `.claude/skills/relay-setup/workflow.md` — add a row to the Skills Manifest
+     template.
+   - `.github/workflows/publish.yml:34` — bump the `-ne N` check, and update
+     the `"Expected N"` string at `:35` to match.
 
-5. Bump the version in `package.json`, `tools/cli.js` (VERSION constant), and the relay-setup version.md template
+   **README (3 surfaces):**
+   - `README.md:37` — update the "N workflow skills" lead.
+   - `README.md:144–198` — add a row to the relevant Skill Reference
+     sub-section (Setup / Prepare / Discovery / Feature / Exercise /
+     Code / Navigation).
+   - `README.md:349–396` — add a row to the Directory Structure ASCII tree.
+
+   **Local docs (1 surface):**
+   - `.relay/relay-config.md:175, 185, 186, 212` — update Test Commands
+     literal assertions (`(19)` / `expect 19` / `(must equal 19)`).
+     Gitignored but still required for accurate local smoke tests.
+
+   **Also update (not count-based, but required wiring):**
+   - `README.md:107–125` Workflow Categories ASCII grid — **only** if the
+     new skill is a lifecycle-flow-step skill (not an initialization or
+     navigation meta-skill like `/relay-setup` or `/relay-help`).
+   - Navigation entries in adjacent skills — so `/relay-help` and related
+     skills route to the new one.
+   - `/relay-help` Available Skills table — so the skill is discoverable via
+     `/relay-help`.
+
+4. If the skill reads/writes to `.relay/relay-config.md`, add a Phase 2 step
+   in `relay-setup`.
+
+5. Bump the version triple (see `.relay/relay-config.md:68–72`):
+   - `package.json` `version` field.
+   - `tools/cli.js:6` `VERSION` constant.
+   - `.relay/version.md` "Version" row in the Installed table.
+
+   Add a changelog entry in both `.relay/version.md` and
+   `.claude/skills/relay-setup/workflow.md`.
 
 ### Data Contracts
 

@@ -276,7 +276,7 @@ Log the decision in the Session Log (Phase 7) as
    # Feature Brainstorm: <proposed-slug>
 
    *Created: YYYY-MM-DD by /relay-exercise (seeded from goal mode)*
-   *Source: exercise/<session-slug>/_control.md journey step <N>*
+   *Source: exercise/<session>/_control.md journey step <N>*
    *Status: BRAINSTORMING*
 
    (Lifecycle: BRAINSTORMING → READY FOR DESIGN → DESIGN COMPLETE → COMPLETE)
@@ -289,10 +289,10 @@ Log the decision in the Session Log (Phase 7) as
 
    ## Context
 
-   *Seeded from exercise session `<session-slug>` (goal mode) at
+   *Seeded from exercise session `<session>` (goal mode) at
    journey step <N>.*
    *For the full goal, journey, and any runner observations tied to
-   this gap, read [exercise/<session-slug>/_control.md](../exercise/<session-slug>/_control.md).*
+   this gap, read [exercise/<session>/_control.md](../exercise/<session>/_control.md).*
 
    Journey step <N> expected a capability that could: <one-line
    synthesized from Required Capability + Notes>. No existing project
