@@ -122,9 +122,9 @@ Check if any items are in-progress (have pipeline sections appended):
 - `.relay/relay-exercise.md` does not exist AND project has source code
   → *"You haven't mapped this project's capabilities yet. Run **/relay-exercise** for a bottom-up capability map, or **/relay-exercise \"<your goal>\"** if you have a specific user journey to probe for missing capabilities. Or continue with standard discovery via **/relay-discover**."*
 - Master hub exists AND its Aggregate Capabilities table has rows with status `mapped` (not yet exercised in any session)
-  → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time within the active session, or **/relay-exercise-run <group>** to sweep a group."*
+  → *"N capabilities mapped but not yet exercised. Run **/relay-exercise-run** to start exercising one at a time within the active session, **/relay-exercise-run <group>** to sweep a group, or **/relay-exercise-auto** to auto-sweep the entire session in isolated agents (run + file end-to-end, no per-item prompting)."*
 - Active goal session with non-terminal Journey rows: master hub Sessions table has a row with Mode `goal` and Status `active`, and that session's `_control.md` Journey table has at least one row with Status ∈ `exists | gap`
-  → *"Active goal session `<session>` has <Q> un-walked steps (<E> exists, <G> gaps). Run **/relay-exercise-run** to walk the journey end-to-end with adaptive gap handling (substitute / file / skip). Or target a specific step: **/relay-exercise-run <N>**. Mid-walk, the runner pauses on high-severity findings or failures and offers `replan` to revise remaining steps without losing progress."*
+  → *"Active goal session `<session>` has <Q> un-walked steps (<E> exists, <G> gaps). Run **/relay-exercise-run** to walk the journey end-to-end with adaptive gap handling (substitute / file / skip), **/relay-exercise-run <N>** for a specific step, or **/relay-exercise-auto** to auto-sweep the journey with a one-time gap policy (auto-adapt / auto-file / auto-skip) and per-step isolated agents. Mid-walk, the interactive runner pauses on high-severity findings or failures and offers `replan` to revise remaining steps without losing progress; the auto sweep records them in the final summary instead of pausing."*
 - Active exercise files exist under `.relay/exercise/<session>/*.md` in any active session subfolder, with `draft` findings
   → *"N exercise files have unprocessed findings (across <K> active session(s)). Run **/relay-exercise-file --session <session> <capability>** for a specific capability, or **/relay-exercise-file --session <session>** with no capability arg to walk all files in the session (step-order in goal sessions)."*
 - Master hub Aggregate Capabilities has rows with status `stale`
@@ -154,6 +154,7 @@ Priority when multiple exercise conditions apply: draft findings first (active w
 | **/relay-exercise** | Map project capabilities for stress-testing |
 | **/relay-exercise-run** | Execute scenarios against a capability |
 | **/relay-exercise-file** | Walk findings and file issues or brainstorm seeds |
+| **/relay-exercise-auto** | Auto-sweep run + file across the active session (one agent per item) |
 | **/relay-scan** | Update project status |
 | **/relay-order** | Prioritize work |
 | **/relay-analyze** | Validate item before implementation |
@@ -172,6 +173,7 @@ Specific issue     →  /relay-new-issue  →  /relay-scan → /relay-order → 
 Systematic scan    →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Feature idea       →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Exercise session   →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → ... → /relay-resolve
+Exercise (sweep)   →  /relay-exercise → /relay-exercise-auto → /relay-scan → ... → /relay-resolve
 ```
 
 ## Code Pipeline

@@ -122,6 +122,7 @@ Skills are in your platform's skill directory:
 | /relay-exercise | Map project capabilities |
 | /relay-exercise-run | Execute scenarios |
 | /relay-exercise-file | File findings |
+| /relay-exercise-auto | Auto-sweep run + file across the active session |
 | /relay-analyze | Validate before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |

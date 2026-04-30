@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "3.2.3";
+const VERSION = "3.2.4";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const AGENTS_SKILLS_DIR = ".agents/skills";
 const MARKER_START = "<!-- relay-workflow:start -->";
@@ -16,6 +16,7 @@ const RELAY_SKILLS = [
   "relay-design",
   "relay-discover",
   "relay-exercise",
+  "relay-exercise-auto",
   "relay-exercise-file",
   "relay-exercise-run",
   "relay-help",
@@ -66,6 +67,7 @@ and what's next. Skills are in \`.agents/skills/relay-*/\`.
 | /relay-exercise | Map project capabilities for stress-testing |
 | /relay-exercise-run | Execute scenarios against a capability |
 | /relay-exercise-file | Walk findings and file issues or brainstorm seeds |
+| /relay-exercise-auto | Auto-sweep run + file across the active session |
 | /relay-analyze | Validate item before implementation |
 | /relay-plan | Create implementation plan |
 | /relay-superplan | Create plan via 5 competing agents |
@@ -80,6 +82,8 @@ Start with \`/relay-setup\`, then \`/relay-help\`.
 Workflow: \`/relay-analyze\` → \`/relay-plan\` or \`/relay-superplan\` → \`/relay-review\` → implement → \`/relay-verify\` → \`/relay-notebook\` → \`/relay-resolve\`
 
 Exercise flow: \`/relay-exercise\` → \`/relay-exercise-run\` → \`/relay-exercise-file\` → (filed items flow into normal code pipeline)
+
+Auto-sweep: \`/relay-exercise-auto\` runs the run+file pair end-to-end across the active session, with one isolated agent per work item.
 
 Goal mode: \`/relay-exercise "<your goal>"\` builds a top-down journey of required capabilities and discovers missing ones as gaps.
 ${MARKER_END}`;

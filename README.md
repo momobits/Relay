@@ -34,7 +34,7 @@ The bigger the project, the worse it gets. You repeat yourself, re-explain archi
 
 Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **19 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
+- **20 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
 - **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
 - **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
 - **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
@@ -137,6 +137,7 @@ Specific issue        →  /relay-new-issue  →  /relay-scan → /relay-order �
 Systematic scan       →  /relay-discover   →  /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Feature idea          →  /relay-brainstorm → /relay-design → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Exercise session      →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Exercise auto-sweep   →  /relay-exercise → /relay-exercise-auto → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Goal-driven exercise  →  /relay-exercise "<your goal>" → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 ```
 
@@ -181,6 +182,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **/relay-exercise** | Map project capabilities. Produces the master hub (`.relay/relay-exercise.md`) as a project-wide registry, plus a per-session `_control.md` with identity, capabilities, chains, and coverage. Supports **goal mode** — pass `"<your goal>"` for top-down journey discovery. |
 | **/relay-exercise-run** | Execute realistic scenarios against a capability (or a group). Captures observations as structured findings. |
 | **/relay-exercise-file** | Walk findings with the user, file them as issues or brainstorm seeds, update the hub. |
+| **/relay-exercise-auto** | Auto-sweep `/relay-exercise-run` + `/relay-exercise-file` across the entire active session. Spawns one isolated agent per work item with auto-decisions, returning a summary back. Default mode walks all `mapped` capabilities; goal mode walks all non-terminal Journey steps with a one-time gap policy. |
 
 ### Code — Implementation pipeline
 
@@ -306,6 +308,8 @@ Execute realistic scenarios against the real application. Findings are captured 
 
 Walk the findings with the user. Each decision is persisted immediately. Would-be-issues become files in `.relay/issues/`. Would-be-brainstorms become seeded brainstorms in `.relay/features/` with partial content for `/relay-brainstorm` to develop later. Notes stay in the exercise file as preserved context. Both modes flow through the same filing step.
 
+**Auto-sweep alternative:** if you'd rather walk the entire session end-to-end without prompting per item, run `/relay-exercise-auto` after Step 1 instead of Steps 2–3. It spawns one isolated agent per capability (default mode) or step (goal mode) that runs the run+file pair with auto-decisions, returning a summary back to the orchestrator. Goal mode asks once for a gap policy (`auto-adapt` / `auto-file` / `auto-skip`) at the start. The main session never absorbs scenario stdout, finding bodies, or filer dialogs — only one progress line per item — keeping the working context clean across long sweeps.
+
 ### Step 4: Integrate
 
 Run `/relay-scan` and `/relay-order` to integrate the new issues and brainstorms into the backlog. From here, filed issues follow the standard code pipeline (see *"Fixing a Bug"*). Seeded brainstorms can be developed further with `/relay-brainstorm` when you're ready.
@@ -382,6 +386,7 @@ your-project/
 │       ├── relay-order/          # Prioritize work
 │       ├── relay-discover/       # Scan for issues
 │       ├── relay-exercise/       # Map capabilities
+│       ├── relay-exercise-auto/  # Auto-sweep run + file across the session
 │       ├── relay-exercise-file/  # File findings
 │       ├── relay-exercise-run/   # Execute scenarios
 │       ├── relay-new-issue/      # File a specific issue
