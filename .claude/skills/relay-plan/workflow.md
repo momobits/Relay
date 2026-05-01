@@ -19,6 +19,14 @@ Based on the analysis, create a detailed implementation plan.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
 
+   Scope Decision check: in the same most-recent ## Analysis section,
+   look for a `### Scope Decision` subsection. If present, read its
+   `*Mode:*` value:
+   - `keep narrow` or `linked companion` → plan the target as a single-item run.
+   - `grouped run` → plan the target plus all entries in `#### Grouped Entries`. The plan MUST emit a `### Grouped Run Coverage` section per the Planner Contract documented in the same Scope Decision block. See step 7 below.
+   - `promote` → STOP and tell the user: "This analysis was promoted to a feature via Feature 3. The promoted feature file is the planner's target, not this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature."
+   - No `### Scope Decision` subsection → proceed as a single-item run (legacy / pre-12-2 analyses).
+
 If an Adversarial Review section exists in the issue/feature file with
 verdict REJECTED (from a previous /relay-review), read it first and
 incorporate the rejection feedback into this revised plan. Address every
@@ -116,6 +124,20 @@ Requirements for the plan:
 
    ### Step 2: [title]
    ...
+
+   ### Grouped Run Coverage
+   *(REQUIRED when the target's most-recent `### Scope Decision` is `*Mode:* grouped run`. Omit otherwise.)*
+
+   | Target | Kind | Obligation | Plan Step(s) | Files / Symbols | Notes |
+   |--------|------|------------|--------------|-----------------|-------|
+   | (target issue) | run leader | full | 1, 2 | file_a.py::func_x | run leader |
+   | sibling_a.md | existing item | full | 2, 3 | file_a.py::func_y, docs/config.md | same root cause |
+   | unfiled: settings.py::old_flag branch | unfiled candidate | partial - only old_flag references | 3 | settings.py::OLD_FLAG, README.md | broader test gap remains out of scope |
+
+   - Every entry from the Scope Decision's `#### Grouped Entries` table must appear here with at least one Plan Step mapping.
+   - Entries with `Closure obligation: full` must have explicit Files / Symbols coverage matching the sibling's blast radius.
+   - Entries with `Closure obligation: partial - only X` must name the exact subset in scope.
+   - If grouped scope cannot be planned coherently (e.g., a sibling requires architectural changes the plan cannot accommodate without scope creep), STOP and tell the user: "Grouped run scope cannot be cleanly planned. Re-run **/relay-analyze** with scope reduction (drop the entry from the group) or promotion (escalate to Feature 3)."
 
    ## Test Changes
    - [list of test file changes]

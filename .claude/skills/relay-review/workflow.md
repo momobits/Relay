@@ -41,6 +41,17 @@ not to confirm it's good.
    - Are there cases the issue/feature file didn't mention that the plan should cover?
    - Does every file in the blast radius get addressed?
    - Is there cleanup needed? (dead code removal, comment updates, etc.)
+   - **Sibling-survival** (only when target's most-recent `### Scope Decision` is `*Mode:* grouped run`): walk the `#### Grouped Entries` table and the plan's `### Grouped Run Coverage` section. For each grouped entry, verify the plan addresses the entry's cited evidence at the closure obligation's granularity:
+       - Entries with `Closure obligation: full` must have plan steps touching every file/symbol in the entry's blast radius.
+       - Entries with `Closure obligation: partial - only X` must have plan steps touching the named subset.
+       - Unaddressed entries raise a **Sibling-survival objection**. Either:
+           - the reviewer cites the plan step that covers the gap (resolving the objection in-place), OR
+           - the reviewer reduces scope by dropping the entry. To drop an entry:
+               - in the target's `### Scope Decision`, strike through the row in `#### Grouped Entries` (wrap in `~~...~~`) and append `*Dropped during review YYYY-MM-DD: [reason]*` after the table;
+               - in the dropped entry's sibling file (`Kind: existing item` only), strike through the `> Grouped into [target] run` annotation and append `> Removed from group YYYY-MM-DD: [reason]` line;
+               - record the drop in the Adversarial Review's Issues Found section as a `Severity: scope reduction` entry citing the reason;
+               - if the dropped entry has `Kind: unfiled candidate`, only the target-side and review-side annotations apply (no sibling file).
+       - **Edge case — all siblings dropped, only run leader remains**: if cumulative drops leave only the run leader in `#### Grouped Entries`, the Mode remains `grouped run` (technically degenerate but valid; downstream coverage checks no-op against the 1-entry table). The reviewer MAY OPTIONALLY also strike through `*Mode:* grouped run` in the target's `### Scope Decision` and replace with `*Mode:* keep narrow`, recording the mode change in the Adversarial Review's Issues Found as an additional `Severity: scope reduction` entry. This cleanup is optional, not required.
 
 5. Persist the review by APPENDING it to each relevant issue/feature file in
    .relay/issues/ or .relay/features/, after the Implementation Plan section. Add:

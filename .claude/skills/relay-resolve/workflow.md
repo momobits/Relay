@@ -14,6 +14,14 @@ Close it out.
      but does NOT substitute for a COMPLETE verification verdict.
    - If the item was determined stale by /relay-analyze: verify the
      ## Analysis section documents the staleness finding.
+   - **If the target carries a grouped-run Scope Decision** (most-recent `### Scope Decision` has `*Mode:* grouped run`): additionally verify the per-entry closure readiness. For each row in `#### Grouped Entries`:
+       - the entry's `Closure obligation` (full or partial) must be satisfied by Implementation evidence (cross-checked against the Verification Report's Grouped Run Coverage diff check from Step 5);
+       - any entry with closure status `partial` (planned partial close) or `not closed` (untouched) MUST have an explicit follow-up. Document the disposition in a `### Per-Entry Closure` section appended to the Verification Report (or to a new `### Per-Entry Closure` block in the target file if Verification Report is absent — e.g., stale-item resolutions). Disposition options per entry:
+           - `closed` — entry was fully or partially addressed per its obligation (no follow-up needed).
+           - `re-opened` — re-file the entry as a separate run via /relay-new-issue (existing item) or by promoting to a new feature (unfiled candidate); cite the new issue/feature path.
+           - `superseded` — route to Feature 3's promotion workflow; cite the resulting promoted feature path.
+           - `follow-up filed` — file via /relay-new-issue; cite the new issue path.
+       - if any entry's per-entry disposition is missing or unaddressed, STOP and tell the user: "Grouped run cannot close — entry [N] has not been [closed | re-opened | superseded | follow-up filed]. Resolve before re-running /relay-resolve."
    - If prerequisites are missing, WARN the user:
      "This item does not appear fully verified. Run
      **/relay-verify** (or **/relay-notebook**) first, or
@@ -98,6 +106,13 @@ Close it out.
      these cases automatically.
    - If a matching notebook exists in .relay/notebooks/[file].ipynb, move it
      to .relay/archive/notebooks/[file].ipynb
+   - **Grouped-run sibling archival** (only when this resolution is closing a grouped run — target's most-recent `### Scope Decision` has `*Mode:* grouped run`):
+       - For each entry in `#### Grouped Entries` with `Kind: existing item` and per-entry closure status `closed` (per Step 0's Per-Entry Closure section):
+           - move the sibling from `.relay/issues/[sibling].md` (or `.relay/features/[sibling].md`) to the corresponding archive directory `.relay/archive/issues/[sibling].md` (or `.relay/archive/features/[sibling].md`);
+           - add a banner at the top of the archived sibling: `> **ARCHIVED — RESOLVED IN GROUPED RUN** with [run leader name](../../implemented/[leader].md). See run leader's Per-Entry Closure for closure status and obligation granularity.`
+           - the sibling's `> Grouped into [target] run on YYYY-MM-DD` annotation is **preserved** in the archived file (matches Phase 1D / Phase 4-1 back-ref-preservation convention — preserves history).
+       - Entries with `Kind: unfiled candidate` have no sibling file to archive; their lifecycle ends in the run leader's archive entry's `## Per-Entry Closure` section (the leader's archived file already names them).
+       - In the run leader's implementation doc (created in step 2), add a `## Per-Entry Closure` section listing every grouped entry with: target name, kind, closure obligation, final closure status (closed | partial | re-opened | superseded | follow-up filed), and a one-line citation of the implementation evidence (file:line or impl-doc reference).
 
 5. Update exercise back-references and conditionally archive exercise files:
 

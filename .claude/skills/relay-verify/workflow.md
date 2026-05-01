@@ -20,6 +20,12 @@ The implementation is complete. Verify it against the finalized plan.
      Verification Report's Issues Found section.
    - Check that no unplanned changes were introduced (scope creep, drive-by
      refactors, unnecessary additions)
+   - **Grouped Run Coverage check** (only when target's most-recent `### Scope Decision` is `*Mode:* grouped run`): for every entry in the plan's `### Grouped Run Coverage` table, verify the diff touches the promised Files / Symbols at the obligation's granularity:
+       - `Closure obligation: full` — every promised file or symbol must show implementation evidence in the diff.
+       - `Closure obligation: partial - only X` — only the named subset must show implementation evidence in the diff. Untouched parts of the same file outside X are NOT a verification objection.
+       - Untouched grouped entries raise a **verification objection** that must be resolved before close. Resolution options:
+           - file the missing implementation as a Verification Fix (within the current verify pass, per the existing Verification Fixes section flow at step 5), OR
+           - escalate to scope reduction: re-open this verification with a re-stated Scope Decision (drop the entry from the group via /relay-review's scope-reduction sub-flow, propagate the drop to the sibling file's annotation, and re-run /relay-verify).
 
 2. Completeness check:
    - Were ALL steps in the plan implemented? List any that were skipped.

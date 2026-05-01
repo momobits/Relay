@@ -37,6 +37,14 @@ Do not proceed with the 5-agent dispatch.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
 
+   Scope Decision check: in the same most-recent `## Analysis` section,
+   look for a `### Scope Decision` subsection. If present, read its
+   `*Mode:*` value:
+   - `keep narrow` or `linked companion` → plan the target as a single-item run; all 5 agents plan the same single-item scope.
+   - `grouped run` → all 5 agents must plan the target plus all entries in `#### Grouped Entries`, and each candidate plan must emit a `### Grouped Run Coverage` section per the Planner Contract. See Step 3 (shared format instructions) and Step 4 (synthesis) below.
+   - `promote` → STOP and tell the user: "This analysis was promoted to a feature via Feature 3. The promoted feature file is the planner's target, not this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature."
+   - No `### Scope Decision` subsection → proceed as a single-item run (legacy / pre-12-2 analyses).
+
    If an Adversarial Review section exists with verdict REJECTED (from a
    previous `/relay-review`), read it and note the rejection feedback — all
    5 agents must address every issue raised.
@@ -203,6 +211,7 @@ Also include:
 - Post-Implementation Checks: ordered verification commands
 - Risks & Mitigations: consolidated risk register
 - Rollback Plan: overall revert strategy
+- Grouped Run Coverage (REQUIRED if the target's most-recent `### Scope Decision` is `*Mode:* grouped run`): emit a `### Grouped Run Coverage` table mapping every grouped entry to one or more plan steps with explicit Files / Symbols. See `/relay-plan` step 7 for the canonical table format and column definitions. If grouped scope cannot be planned coherently within your strategy's directive, return a plan that explicitly says so in its Strategy Summary and includes a stub Grouped Run Coverage section flagging the unmappable entries — the synthesizer (Step 4) will surface this to the user instead of silently planning around it.
 
 At the TOP of your plan, add a 2-3 sentence "Strategy Summary" explaining
 your approach and why you chose it given your directive.
@@ -244,6 +253,7 @@ Once all 5 agents return, perform synthesis:
    - Refactor-Forward's structural improvements (if they genuinely help)
    - Test-Driven's test cases (fill coverage gaps in the base plan)
    - Any unique insight from any plan that others missed
+   - **Grouped Run Coverage** (when target's `### Scope Decision` is `*Mode:* grouped run`): merge the most thorough `### Grouped Run Coverage` table from the 5 candidates into the synthesized plan. The synthesized plan MUST include a Grouped Run Coverage section that covers every grouped entry. **Impossibility-propagation rule**: if any candidate's Strategy Summary explicitly flagged grouped scope as unplannable, propagate that signal to the user — STOP synthesis and tell the user: "One or more strategy candidates flagged grouped run scope as unplannable. Re-run **/relay-analyze** with scope reduction or promotion before re-running **/relay-superplan**." Do NOT silently synthesize around the flag.
 
 5. **Produce the final synthesized plan** using the exact relay-plan format
    (see Step 5). The final plan must be a coherent whole — not a patchwork
