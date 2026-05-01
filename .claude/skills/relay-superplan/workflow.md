@@ -37,12 +37,22 @@ Do not proceed with the 5-agent dispatch.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
 
+   Promoted-feature detection (NEW: 12-3): BEFORE the Scope Decision check below, look for a `*Promoted from:*` header in the target feature's metadata block. The same target file may carry BOTH headers (a re-analyzed promoted feature has both), so check `*Promoted from:*` FIRST.
+
+   | Header signal | Action |
+   |---------------|--------|
+   | `*Promoted from:*` present AND `*Promotion Class:* lightweight` | All 5 agents plan the target as a single-item run AND emit a `### Promoted Feature Coverage` section. See Step 3 and Step 4. |
+   | `*Promoted from:*` present AND `*Promotion Class:* broad` | All 5 agents emit a `### Design Deepening` section BEFORE the implementation plan AND a `### Promoted Feature Coverage` section AFTER. /relay-superplan is the PREFERRED path for broad promotions on Claude Code. See Step 3 and Step 4. |
+   | `*Promoted from:*` absent | Proceed to the Scope Decision check below. |
+
+   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal. Phase 12-4's Tier 2 → Tier 1 waiver logic via `*Closure Tier Applied:*` is layered downstream in /relay-verify and /relay-resolve, not here.
+
    Scope Decision check: in the same most-recent `## Analysis` section,
    look for a `### Scope Decision` subsection. If present, read its
    `*Mode:*` value:
    - `keep narrow` or `linked companion` → plan the target as a single-item run; all 5 agents plan the same single-item scope.
    - `grouped run` → all 5 agents must plan the target plus all entries in `#### Grouped Entries`, and each candidate plan must emit a `### Grouped Run Coverage` section per the Planner Contract. See Step 3 (shared format instructions) and Step 4 (synthesis) below.
-   - `promote` → STOP and tell the user: "This analysis was promoted to a feature via Feature 3. The promoted feature file is the planner's target, not this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature."
+   - `promote` → STOP and tell the user: "This analysis carries `*Mode:* promote`. The promotion sub-flow in /relay-analyze step 9 should have written a promoted feature file and archived this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature instead."
    - No `### Scope Decision` subsection → proceed as a single-item run (legacy / pre-12-2 analyses).
 
    If an Adversarial Review section exists with verdict REJECTED (from a
@@ -212,6 +222,7 @@ Also include:
 - Risks & Mitigations: consolidated risk register
 - Rollback Plan: overall revert strategy
 - Grouped Run Coverage (REQUIRED if the target's most-recent `### Scope Decision` is `*Mode:* grouped run`): emit a `### Grouped Run Coverage` table mapping every grouped entry to one or more plan steps with explicit Files / Symbols. See `/relay-plan` step 7 for the canonical table format and column definitions. If grouped scope cannot be planned coherently within your strategy's directive, return a plan that explicitly says so in its Strategy Summary and includes a stub Grouped Run Coverage section flagging the unmappable entries — the synthesizer (Step 4) will surface this to the user instead of silently planning around it.
+- Promoted Feature Coverage / Design Deepening (REQUIRED if the target carries `*Promoted from:*`): if `*Promotion Class:* lightweight`, emit a `### Promoted Feature Coverage` table mapping every Strong/Medium finding from the copied Analysis's `### Related Work` to one or more plan steps. If `*Promotion Class:* broad`, emit a leading `### Design Deepening` section (subsystem boundaries, named invariants, abstraction seams, related-work disposition) BEFORE the per-step implementation plan, AND a `### Promoted Feature Coverage` section AFTER the steps. See `/relay-plan` step 7 for canonical templates. If broad-promotion boundaries are unresolvable within your strategy's directive, return a plan that explicitly says so in its Strategy Summary and includes a stub Design Deepening section flagging the unresolvable boundaries — the synthesizer (Step 4) will surface this to the user instead of silently planning around it.
 
 At the TOP of your plan, add a 2-3 sentence "Strategy Summary" explaining
 your approach and why you chose it given your directive.
@@ -254,6 +265,7 @@ Once all 5 agents return, perform synthesis:
    - Test-Driven's test cases (fill coverage gaps in the base plan)
    - Any unique insight from any plan that others missed
    - **Grouped Run Coverage** (when target's `### Scope Decision` is `*Mode:* grouped run`): merge the most thorough `### Grouped Run Coverage` table from the 5 candidates into the synthesized plan. The synthesized plan MUST include a Grouped Run Coverage section that covers every grouped entry. **Impossibility-propagation rule**: if any candidate's Strategy Summary explicitly flagged grouped scope as unplannable, propagate that signal to the user — STOP synthesis and tell the user: "One or more strategy candidates flagged grouped run scope as unplannable. Re-run **/relay-analyze** with scope reduction or promotion before re-running **/relay-superplan**." Do NOT silently synthesize around the flag.
+   - **Promoted Feature Coverage / Design Deepening** (when target carries `*Promoted from:*`): merge the strongest `### Promoted Feature Coverage` table from the 5 candidates. If `*Promotion Class:* broad`, also preserve the most thorough `### Design Deepening` section verbatim — Design Deepening MUST appear in the synthesized plan; it cannot be summarized away. **Consistency-wins tie-breaker**: when candidates disagree on `### Design Deepening` wording (e.g., different invariant names, different boundary scope), prefer the wording that is most consistent across candidates. If no clear majority emerges, prefer the wording that uses the same vocabulary as the source issue's `### Related Work` findings. **Impossibility-propagation rule**: if any candidate's Strategy Summary flagged broad-promotion boundaries as unresolvable, propagate that signal to the user — STOP synthesis and tell the user: "One or more strategy candidates flagged broad-promotion boundaries as unresolvable. Re-run **/relay-analyze** to re-evaluate scope or split into multiple promoted features before re-running **/relay-superplan**." Do NOT silently synthesize around the flag.
 
 5. **Produce the final synthesized plan** using the exact relay-plan format
    (see Step 5). The final plan must be a coherent whole — not a patchwork

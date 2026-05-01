@@ -20,6 +20,19 @@ The implementation is complete. Verify it against the finalized plan.
      Verification Report's Issues Found section.
    - Check that no unplanned changes were introduced (scope creep, drive-by
      refactors, unnecessary additions)
+   - **Promoted Feature classification** (only when target carries `*Promoted from:*` in its front-matter): determine the applied closure tier from the front-matter, then apply tier-specific checks per the decision table below.
+
+     **12-4 layering boundary**: read `*Closure Tier Applied:*` from the front-matter; if present, that is the FINAL applied tier. If absent, fall back to `*Closure Tier Baseline:*`. This permissive rule allows Phase 12-4's waiver logic to layer cleanly on top — when 12-4 is not yet implemented, every read falls through to baseline; once 12-4 lands, the same code-paths automatically pick up the waiver.
+
+     | `*Closure Tier Baseline:*` | Checks to apply (decision table) |
+     |----------------------------|------------------------------------|
+     | `tier-1` (lightweight promotions) | Verify the diff against the plan's `### Promoted Feature Coverage` table. Every Strong/Medium finding row in the table must have implementation evidence in the diff. Untouched coverage rows raise a **verification objection** that must be resolved before close. |
+     | `tier-2` (broad promotions) | Apply tier-1 PLUS three additional checks: (a) **subsystem-wide reference scan** — for every named invariant and abstraction seam in the plan's `### Design Deepening` section, scan the entire subsystem for callers/consumers that may also need to honor the invariant; (b) **cross-file consistency check** — verify the implementation is consistent across every file named in the broader work's blast radius (not just the files in the plan's per-step list); (c) **subsystem invariant check** — for every named invariant, verify the diff does not violate it elsewhere in the subsystem. Each tier-2 sub-check that surfaces an uncovered caller raises a **verification objection**. |
+
+     **Resolution options for promoted-feature verification objections** mirror Grouped Run resolution: (i) file the missing coverage as a Verification Fix (within the current verify pass, per the existing Verification Fixes section flow at step 5), OR (ii) re-classify the promotion via /relay-analyze (lightweight ↔ broad), OR (iii) escalate the unaddressed obligation as a follow-up issue via /relay-new-issue.
+
+     **Read order**: `*Closure Tier Applied:*` first (with literal `*Closure Tier Applied:*` decision-table-header form to underscore the order); fall back to `*Closure Tier Baseline:*`. This is the ONLY read order in this skill — the BASELINE is consulted only when APPLIED is absent. Phase 12-4 will introduce waiver logic that sets `*Closure Tier Applied:*`; until 12-4 lands, this read order always falls through to baseline.
+
    - **Grouped Run Coverage check** (only when target's most-recent `### Scope Decision` is `*Mode:* grouped run`): for every entry in the plan's `### Grouped Run Coverage` table, verify the diff touches the promised Files / Symbols at the obligation's granularity:
        - `Closure obligation: full` — every promised file or symbol must show implementation evidence in the diff.
        - `Closure obligation: partial - only X` — only the named subset must show implementation evidence in the diff. Untouched parts of the same file outside X are NOT a verification objection.

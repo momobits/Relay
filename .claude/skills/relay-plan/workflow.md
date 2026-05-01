@@ -19,12 +19,22 @@ Based on the analysis, create a detailed implementation plan.
    Consider re-running **/relay-analyze** to revalidate before planning."
    Wait for the user to confirm before proceeding.
 
+   Promoted-feature detection (NEW: 12-3): BEFORE the Scope Decision check below, look for a `*Promoted from:*` header in the target feature's metadata block (top of file, before the first `## H2`). The same target file may carry BOTH headers (a re-analyzed promoted feature has both `*Promoted from:*` and a `### Scope Decision`), so check `*Promoted from:*` FIRST to choose the planner contract.
+
+   | Header signal | Action |
+   |---------------|--------|
+   | `*Promoted from:*` present AND `*Promotion Class:* lightweight` | Plan the target as a single-item run. The plan MUST emit a `### Promoted Feature Coverage` section per the canonical template. See step 7 below. |
+   | `*Promoted from:*` present AND `*Promotion Class:* broad` | Plan MUST begin with a `### Design Deepening` section BEFORE the implementation plan, then emit `### Promoted Feature Coverage` AFTER the implementation steps. On Claude Code, prefer `/relay-superplan`; this skill is the fallback path. See step 7 below. |
+   | `*Promoted from:*` absent | Proceed to the Scope Decision check below. |
+
+   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal for the planner contract. Phase 12-4 will layer Tier 2 → Tier 1 waiver logic in /relay-verify and /relay-resolve via a `*Closure Tier Applied:*` annotation; that waiver does NOT affect /relay-plan's choice of section template here. (lightweight ↔ tier-1, broad ↔ tier-2 remains an invariant at promotion time; only the FINAL closure-tier check is waivable downstream.)
+
    Scope Decision check: in the same most-recent ## Analysis section,
    look for a `### Scope Decision` subsection. If present, read its
    `*Mode:*` value:
    - `keep narrow` or `linked companion` → plan the target as a single-item run.
    - `grouped run` → plan the target plus all entries in `#### Grouped Entries`. The plan MUST emit a `### Grouped Run Coverage` section per the Planner Contract documented in the same Scope Decision block. See step 7 below.
-   - `promote` → STOP and tell the user: "This analysis was promoted to a feature via Feature 3. The promoted feature file is the planner's target, not this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature."
+   - `promote` → STOP and tell the user: "This analysis carries `*Mode:* promote`. The promotion sub-flow in /relay-analyze step 9 should have written a promoted feature file and archived this issue. Run **/relay-plan** or **/relay-superplan** on the promoted feature instead."
    - No `### Scope Decision` subsection → proceed as a single-item run (legacy / pre-12-2 analyses).
 
 If an Adversarial Review section exists in the issue/feature file with
@@ -137,7 +147,42 @@ Requirements for the plan:
    - Every entry from the Scope Decision's `#### Grouped Entries` table must appear here with at least one Plan Step mapping.
    - Entries with `Closure obligation: full` must have explicit Files / Symbols coverage matching the sibling's blast radius.
    - Entries with `Closure obligation: partial - only X` must name the exact subset in scope.
-   - If grouped scope cannot be planned coherently (e.g., a sibling requires architectural changes the plan cannot accommodate without scope creep), STOP and tell the user: "Grouped run scope cannot be cleanly planned. Re-run **/relay-analyze** with scope reduction (drop the entry from the group) or promotion (escalate to Feature 3)."
+   - If grouped scope cannot be planned coherently (e.g., a sibling requires architectural changes the plan cannot accommodate without scope creep), STOP and tell the user: "Grouped run scope cannot be cleanly planned. Re-run **/relay-analyze** with scope reduction (drop the entry from the group) or escalate via the /relay-analyze step 9 promote sub-flow."
+
+   ### Promoted Feature Coverage
+   *(REQUIRED when the target carries `*Promoted from:*`. Coverage section is required for both `*Promotion Class:* lightweight` AND `*Promotion Class:* broad` — broad promotions emit BOTH `### Design Deepening` (before) AND `### Promoted Feature Coverage` (after the implementation steps). Omit when target is not promoted.)*
+
+   | Original Issue Finding | Source Citation | Plan Step(s) | Files / Symbols | Closure |
+   |------------------------|-----------------|--------------|-----------------|---------|
+   | (target's primary problem) | analysis Validation+Root Cause | 1, 2 | file_a.py::func_x | full |
+   | sibling_yaml_loader_null_bytes | analysis Related Work finding 1 (Strong) | 2, 3 | yaml_loader.py::parse | full |
+   | docs/contract.md drift | analysis Related Work finding 2 (Medium) | 4 | docs/contract.md | partial - only the null-byte clause |
+
+   - Every Strong/Medium finding from the source issue's `### Related Work` `#### Findings` block must appear here with at least one Plan Step mapping.
+   - Each row must cite the source issue's file:line or symbol so /relay-verify can verify the diff covers it.
+   - **12-4 layering boundary**: this section reads `*Closure Tier Baseline:*` as the BASELINE only. If `*Closure Tier Applied:*` is present in the target's front-matter (set by Phase 12-4's waiver logic), prefer the applied tier; otherwise use the baseline. 12-3's planner does NOT compute the applied tier.
+   - If a finding cannot be cleanly covered (e.g., out of scope for the lightweight promotion), STOP and tell the user: "This finding requires broader work than `*Promotion Class:* lightweight` permits. Re-run **/relay-analyze** to re-classify the promotion as broad, or file the finding as a follow-up via /relay-new-issue."
+
+   ### Design Deepening
+   *(REQUIRED when the target carries `*Promoted from:*` AND `*Promotion Class:* broad`. The Design Deepening section MUST come BEFORE the per-step implementation plan AND BEFORE `### Promoted Feature Coverage`. Omit otherwise.)*
+
+   #### Boundary Definition
+   - Subsystem invariant under deepening: [name the invariant — e.g., "null-byte preservation across all loaders"]
+   - Files inside the invariant boundary: [enumerate]
+   - Files explicitly outside the boundary: [enumerate, with rationale]
+
+   #### Architectural Decisions
+   - New abstraction(s) introduced: [name + 1-line purpose]
+   - Cross-skill / cross-module coordination required: [enumerate]
+
+   #### Related-Work Disposition
+   - For each Strong/Medium finding from the source issue's `### Related Work`, classify:
+     - `in scope` — addressed by Promoted Feature Coverage below
+     - `out of scope - filed companion` — cite the resulting issue path
+     - `out of scope - waived` — cite the rationale + user confirmation
+
+   - After Design Deepening, the implementation plan follows the standard step format above. The plan must also emit a `### Promoted Feature Coverage` section AFTER the implementation steps (broad promotions still need coverage traceability).
+   - If broad-promotion boundaries are unresolvable (cannot identify a clean subsystem boundary or named invariant), STOP and tell the user: "Broad-promotion design cannot be deepened — boundaries unresolvable. Re-run **/relay-analyze** to re-evaluate scope or split into multiple promoted features."
 
    ## Test Changes
    - [list of test file changes]

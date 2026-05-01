@@ -336,7 +336,120 @@ Output: Updated issue/feature file(s) in .relay/issues/ or .relay/features/ with
       - **Keep narrow**: write a `### Scope Decision` section with `*Mode:* keep narrow`, `*Decided:* YYYY-MM-DD`, and a `*Rationale:*` line. Skip the Grouped Entries / Planner Contract / Closure Contract subsections.
       - **Grouped run**: write the full `### Scope Decision` section including `#### Grouped Entries`, `#### Planner Contract`, `#### Closure Contract` per the step 8 template. For each existing-item sibling in `#### Grouped Entries`, append the one-line annotation `> Grouped into [target] run on YYYY-MM-DD. See [target] for closure status and per-entry obligation.` to the sibling's file (above any existing horizontal rule, below the front-matter and Status line). Unfiled candidates have no sibling file to annotate; their lifecycle exists only through the run leader.
       - **Linked companion**: for each finding the user wants tracked separately, route to `/relay-new-issue` with a suggested title derived from the finding's `Why related` text. Hand findings across one at a time per Open Question 2's lean. Then write `### Scope Decision` with `*Mode:* linked companion` and a `*Filed companion issues:*` list of the resulting issue paths.
-      - **Promote**: route to Feature 3's promotion workflow with the analysis context attached. Feature 3 takes over from this point; Feature 3's workflow performs the Scope Decision write (with `*Mode:* promote`) plus the promoted feature file creation and original issue archival.
+      - **Promote**: run the promotion sub-flow inline. The promotion workflow lives in this skill; it does not delegate to a separate skill. The sub-flow performs pre-flight validation, draft preview, and a transactional 3-step write sequence with explicit rollback at each gate.
+        1. **Pre-flight validation** (executes BEFORE any user-visible prompt; checks ordered most-restrictive first):
+           - **Already-promoted-feature guard**: if the target file carries a `*Promoted from:*` header in its front-matter, STOP and tell the user: "Cannot promote an already-promoted feature — `[target_path]` is already a promoted feature with `*Promoted from: [source]*`. The work has been promoted; no further promotion is possible. Choose a different scope mode (keep narrow / grouped run / linked companion) at the rubric step." This prevents recursive supersession chains. (For 12-3 this guard fires at sub-edit 1a's pre-flight only; rubric refinement to drop `promote` from the available modes for already-promoted features is deferred to a future /relay-analyze rubric revision.)
+           - **Partial-promotion-remnant guard**: check whether the source issue's most-recent `## Analysis` ALREADY contains a `### Scope Decision` with `*Mode:* promote`. If it does, the issue is in a partial-promotion-remnant state (a prior promotion attempt completed Step C — the Scope Decision write — but failed before/during Steps A or B, leaving an active source issue with `*Mode:* promote`). STOP and tell the user: "Source issue `[path]` already carries `*Mode:* promote` in its most-recent Analysis but has not been moved to `.relay/archive/issues/`. This indicates a partial-promotion remnant from a prior attempt. Manual repair required: either complete the prior promotion manually (write the feature file at `.relay/features/<slug>.md` and move the source to `.relay/archive/issues/`), or strip the `*Mode:* promote` Scope Decision from the source issue and re-run /relay-analyze."
+           - **Analysis-completeness guard**: identify the most-recent `## Analysis` section using the "use most recent" rule (the section with the latest `*Analyzed:* YYYY-MM-DD` date — same algorithm used by /relay-plan step 0 and /relay-superplan step 0). If multiple `## Analysis` sections exist (re-analyze cycles), only the most-recent is consulted for promotion. Confirm that section is non-empty and contains at least: `### Validation`, `### Root Cause`, `### Approach`, AND `### Related Work` `#### Findings`. If any subsection is missing or empty, STOP and tell the user: "Cannot promote: source issue's most-recent Analysis (per `*Analyzed:*` date) is incomplete (missing or empty `<subsection>`). Re-run **/relay-analyze** on this issue first."
+           - **Deterministic filename**: derive a feature filename from the draft title using the existing slug convention (lowercase, snake_case to match `.relay/` repo convention, ≤60 chars, alphanumeric + underscores only). Compute the candidate path `.relay/features/<slug>.md`.
+           - **File-existence guard**: refuse to proceed if `.relay/features/<slug>.md` already exists. STOP and tell the user: "Cannot promote: a feature file already exists at `.relay/features/<slug>.md`. Either rename the proposed feature title to produce a different slug, or archive the existing feature first." Do NOT overwrite — overwriting would silently destroy the existing feature.
+           - **Archive-collision warning**: if `.relay/archive/features/<slug>.md` exists, WARN the user: "An archived feature with this filename exists at `.relay/archive/features/<slug>.md`. Proceeding will create a new feature with the same slug but a different lifecycle. Confirm or rename." Wait for confirmation before proceeding.
+        2. **Derive a draft feature title** from the Analysis Approach + Related Work findings. Frame the work concisely; the title should describe the broader work, not the original narrow bug.
+        3. **Optionally allow framing as a `Stabilization effort`** rather than a new feature. This is a wording-only choice (Open Question 1 lean: keep as framing only — no schema difference).
+        4. **Compute `Promotion Class`** via the heuristic. A promotion is `lightweight` ONLY if ALL FOUR conditions hold: (a) the affected work stays within ONE subsystem or directory family per the Blast Radius; (b) no explicit subsystem invariant is named in the Analysis; (c) no new abstraction boundary or cross-skill coordination is required; (d) the broadened affected-files set is small enough to reason about locally (heuristic threshold: ≤ ~5 files). If ANY condition fails, the promotion is `broad`. The heuristic is conservative — when in doubt, choose `broad` so the closure contract is stronger.
+        5. **Compute `Closure Tier Baseline`** from the Promotion Class: `lightweight` → `tier-1`; `broad` → `tier-2`. This is the BASELINE input that `/relay-verify` and `/relay-resolve` will read. **12-4 layering boundary**: downstream Phase 12-4 will layer Tier 2 → Tier 1 waiver logic at the same insertion sites by adding a `*Closure Tier Applied:*` annotation; if `*Closure Tier Applied:*` is present at read time, downstream skills prefer the applied tier; otherwise they use the baseline. 12-3 sets the BASELINE only and does NOT compute the applied tier.
+        6. **Generate the promoted feature file content** in memory (do NOT write to disk yet) per the canonical template. **Triple-mirror callout**: 12-3's metadata triple `*Promoted from:*` / `*Promotion Class:*` / `*Closure Tier Baseline:*` matches 12-2's Scope Decision triple `*Mode:*` / `*Decided:*` / `*Rationale:*` line ordering. The promoted feature template's headers, the verify classification's read order, and the resolve gate's read order all use the same triple-line shape. **Copy scope**: copy ONLY the most-recent `## Analysis` section from the source issue. Do NOT copy `## Adversarial Review`, `## Implementation Plan`, `## Verification Report`, or any other section from the source — those are pre-promotion artifacts that do not apply to the new feature's lifecycle. The new feature has its own /relay-plan / /relay-review / /relay-verify cycle once it is ready for implementation. **Scope Decision strip**: STRIP the source's `### Scope Decision` subsection from the copied Analysis. The source's `*Mode:* promote` decision applies only to the source issue's lifecycle, not the new feature's. The new feature begins in DESIGNED state with no active Scope Decision; a future /relay-analyze pass on the promoted feature will bind a new Scope Decision when warranted. The copied Approach and Related Work sections preserve the findings that drove promotion — that historical context survives the strip. This strip ALSO prevents the v1.1 collision: if the source carried `*Mode:* grouped run` in its Scope Decision, the strip ensures that decision does not bleed into the new feature where it would later trigger /relay-resolve's Disjoint-gate composition STOP.
+
+           ```markdown
+           # Feature: <Title>
+
+           *Created: YYYY-MM-DD*
+           *Promoted from: [<source>.md](../archive/issues/<source>.md)*
+           *Promotion Class:* <lightweight | broad>
+           *Closure Tier Baseline:* <tier-1 | tier-2>
+           *Status: DESIGNED*
+
+           ## Analysis
+
+           *Promoted analysis source:* [<source>.md](../archive/issues/<source>.md)
+           *Analyzed:* YYYY-MM-DD
+
+           [COPY THE MOST RECENT `## Analysis` SECTION FROM THE SOURCE ISSUE,
+            INCLUDING Validation, Root Cause, What This Means, Blast Radius,
+            Related Work, AND Approach. EXCLUDE the `### Scope Decision`
+            subsection — the source's `*Mode:* promote` decision applies only
+            to the source issue's lifecycle, not the new feature's. The new
+            feature begins in DESIGNED state with no active Scope Decision;
+            a future /relay-analyze pass on the promoted feature will bind
+            a new Scope Decision when warranted. The copied Approach and
+            Related Work sections preserve the findings that drove promotion
+            — that historical context survives the strip.]
+           <!-- The Scope Decision strip ALSO prevents v1.1 collision from
+                Open Question 5: a source carrying `*Mode:* grouped run`
+                in its Scope Decision would otherwise bleed that mode into
+                the new feature, where /relay-resolve's Disjoint-gate
+                composition STOP would later halt closure. The strip is
+                the architecturally correct resolution per H-3. -->
+
+           ### Promotion Decision
+           - Promotion rationale: <why the issue became broader work>
+           - Promotion class: <lightweight | broad>
+           - Closure tier baseline: <tier-1 | tier-2>
+
+           ## Summary
+           [Drawn from analysis: 1-2 sentence framing of broader work.]
+
+           ## Promotion Context
+           - Why the issue was promoted
+           - Which related-work findings drove promotion
+           - Why this is broader than a bug fix
+
+           ## Motivation
+           [Drawn from analysis Validation, Root Cause, User Impact.]
+
+           ## Design
+
+           ### Architecture
+           [Drawn from analysis Approach, broadened by Related Work findings.]
+           ### Interfaces
+           ### Data Flow
+           ### Integration Points
+
+           ## Affected Files
+           [Drawn from analysis Blast Radius, expanded to include related-work files.]
+
+           ## Planner Requirements
+           - If `Promotion Class = lightweight`: `/relay-plan` or `/relay-superplan` must include a `### Promoted Feature Coverage` section mapping the source issue's findings to concrete plan steps.
+           - If `Promotion Class = broad`: planning must begin with `### Design Deepening` before the implementation plan. `/relay-superplan` is preferred on Claude Code; `/relay-plan` must provide the same section on platforms where `/relay-superplan` is unavailable.
+
+           ## Dependencies
+           - Promoted from: [link back to source issue's archive entry]
+
+           ## Development Order
+           [Inherits source issue's position in the phase plan. 12-4 will wire ordering replacement.]
+
+           ## Open Questions
+           [Pulled from analysis open questions.]
+
+           ## Closure Contract (Promoted Feature)
+           - Downstream skills detect promoted work by `*Promoted from:*`.
+           - `*Closure Tier Baseline:*` controls whether Tier 1 or Tier 2 checks apply.
+           - `*Closure Tier Applied:*` (if present, set by 12-4 waiver) overrides the baseline at read time.
+           - `/relay-resolve` must record bidirectional closure: the feature's archive entry summarizes the broader work; the source issue's archive entry receives a back-update.
+           ```
+        7. **Show the generated content as a preview** to the user. Show the canonical headers (`*Promoted from:*`, `*Promotion Class:*`, `*Closure Tier Baseline:*`), the copied Analysis section (with `### Scope Decision` already stripped per sub-step 6), and the `### Promotion Decision` block. Wait for the user to confirm before proceeding to the transactional write sequence. **On rejection at preview**: the sub-flow exits without writing the Scope Decision to the source issue (Step C is the Scope Decision write, and it runs only after this preview gate confirms). The user's rubric-level confirmation of `promote` is treated as not-yet-binding — they can re-run /relay-analyze and choose a different mode (keep narrow / grouped run / linked companion / promote with revised content). The source issue remains intact; no filesystem mutations have occurred at preview-rejection time. This is the safest and least-surprising semantics: rubric confirmation gathers intent; preview confirmation makes intent binding.
+        8. **Transactional 3-step write sequence (with explicit rollback at each gate)**:
+           - **Step A — write feature file**: write the generated content to `.relay/features/<slug>.md`. If write fails (permission, disk full), STOP with: "Promotion failed at Step A: could not write `.relay/features/<slug>.md` (<error>). No filesystem changes made. Source issue is intact in `.relay/issues/<source>.md`. Resolve the underlying error and re-run **/relay-analyze** promote." (Rollback: NONE NEEDED — no mutations succeeded.)
+           - **Step B — move source issue to archive**: create `.relay/archive/issues/` on demand if it does not exist (parallel to relay-resolve archive directory convention), then move `.relay/issues/<source>.md` to `.relay/archive/issues/<source>.md` and prepend the supersession banner verbatim:
+
+             ```markdown
+             > **ARCHIVED - SUPERSEDED** by [<feature_name>.md](../features/<feature_name>.md)
+             > on YYYY-MM-DD.
+             >
+             > **Promoted because:** <rationale from scope decision — which findings drove promotion, what made the work broader than a bug>.
+             >
+             > **Closure status:** open - see the superseding feature for current resolution state. This entry will receive a back-update when the feature is resolved.
+             >
+             > *Original analysis preserved below.*
+             ```
+
+             If the move fails (e.g., archive directory creation failed despite mkdir-p attempt, file lock, source path missing), STOP with: "Promotion failed at Step B: could not move source issue to archive (<error>). **Rollback**: deleting freshly-written feature file at `.relay/features/<slug>.md` to restore consistent state — confirm before rollback executes. If rollback succeeds, re-run **/relay-analyze** promote. If rollback fails, manually delete `.relay/features/<slug>.md` AND verify `.relay/issues/<source>.md` is still present before re-running. If the source has disappeared between pre-flight and Step B (concurrent /relay-cleanup or manual deletion), log: 'Source disappeared between pre-flight and write — manual investigation required' and surface the rollback prompt anyway."
+           - **Step C — annotate Scope Decision in source issue's archived copy**: in the freshly-archived `.relay/archive/issues/<source>.md`, append a `### Scope Decision` block to the most-recent Analysis section with `*Mode:* promote`, `*Decided:* YYYY-MM-DD`, and `*Rationale:*` summarizing the promotion decision. (This satisfies the Scope Decision write-on-confirm contract for the `promote` branch. Note: the new feature's COPIED Analysis does NOT carry this Scope Decision — the copy strips Scope Decision so that only the SOURCE-side archive entry records `*Mode:* promote`.) **DEGRADED TO WARNING**: if this annotation fails, the source issue is already archived and the feature file is already written — the supersession banner from Step B carries the rationale, so this annotation is redundant audit-trail rather than load-bearing. Log a warning but do NOT roll back Steps A or B. The user can manually annotate later.
+        9. **Atomicity guarantee**: at any point during the 3-step transactional sequence, a failure surfaces with an explicit rollback path. The system is never left with both an active source issue AND an active feature file referencing it as archived. The system IS briefly left after Step A with a feature file pointing at a not-yet-moved source issue, but Step B's failure path explicitly deletes the feature file before surfacing the error. Step C is intentionally degraded to "warning, no rollback" because by Step C the user-facing supersession banner from Step B already carries the rationale.
+        10. **Idempotency note**: this entire sub-flow is non-idempotent by design — attempting to re-run promotion on an already-promoted issue is caught by the already-promoted-feature guard at sub-step 1 (the source issue is in `.relay/archive/issues/`, not `.relay/issues/`, so /relay-analyze cannot find it as an active target; AND if the user manually moves it back, the partial-promotion-remnant guard catches `*Mode:* promote` in the most-recent Analysis).
+        11. **Route by Promotion Class** via the existing Navigation block. The Navigation block already keys off `*Promotion Class:*` — no Navigation change needed here. Cleanup of the Navigation prose happens in sub-edit 1b.
+
+      **Promotion Class heuristic.** A promotion is `lightweight` only if all four heuristic conditions in sub-step 4 above hold simultaneously. Otherwise it is `broad`. The heuristic is conservative — when in doubt, choose `broad` so the closure contract is stronger.
 
    The user should be able to evaluate your analysis without opening any
    files. If your presentation is just "analysis complete, run /relay-plan (or /relay-superplan)",
@@ -348,7 +461,7 @@ When finished, tell the user the next step based on the outcome:
 - If the item is stale (the bug/gap no longer exists in the code, was already addressed outside the pipeline, or the requirement is no longer valid):
   "This item is stale. Run **/relay-resolve** to archive it as a stale close-out. Then run **/relay-scan** to refresh project status."
 - If the Scope Decision is `*Mode:* promote`:
-  Feature 3's promotion workflow has taken over. The promoted feature file's `*Promotion Class:*` header determines the next step:
+  The step 9 promotion sub-flow has produced a promoted feature file. The promoted feature file's `*Promotion Class:*` header determines the next step:
   - `lightweight` → "Next: **/relay-plan** or **/relay-superplan** on the promoted feature."
   - `broad` → "Next: **/relay-superplan** on the promoted feature (preferred on Claude Code), or **/relay-plan** with a leading Design Deepening section (fallback). See the promoted feature's Planner Requirements."
 - Otherwise (Scope Decision is `keep narrow`, `grouped run`, `linked companion`, or no Scope Decision present for legacy analyses):
