@@ -42,6 +42,7 @@ Relay creates a **living project layer** — a structured `.relay/` directory th
 - **Automated issue discovery** — AI scans your codebase for bugs, gaps, inconsistencies, and tech debt, then logs each finding as a structured issue file that persists across sessions
 - **Manual issue and feature filing** — spot a bug yourself or have a feature idea? File it directly into the workflow so it's tracked alongside discovered issues
 - **Prioritized ordering** — all tracked work is ranked by dependency, severity, and complexity into a phased plan, so you always know what to tackle next
+- **Analyze-time scope formation** — when `/relay-analyze` finds sibling bugs or contract drift adjacent to a filed issue, you can group them into a single run, file companion issues, or promote a narrow bug into a broader feature with bidirectional supersession. Closure tiers gate verification rigor by promotion class.
 
 ### Memory That Grows
 
@@ -370,6 +371,20 @@ Every issue or feature follows the same documentation lifecycle. Each phase appe
 │  Executable verification proof                            │
 └───────────────────────────────────────────────────────────┘
 ```
+
+---
+
+### Scope-Formation Lifecycle States (Phase 12)
+
+The simple lifecycle above describes single-item runs. Phase 12 introduced three additional lifecycle states that appear when `/relay-analyze` discovers related work:
+
+- **Grouped run** — multiple sibling items handled as one work unit. `/relay-analyze` records `### Scope Decision` with `*Mode:* grouped run` and a `#### Grouped Entries` table; the plan emits `### Grouped Run Coverage`; verify enforces sibling-survival; resolve archives all siblings together. `/relay-scan` and `/relay-order` render the run as a single multi-line block.
+- **Promoted feature** — when the real work is broader than a bug fix, the original issue is archived as superseded and a new `.relay/features/<feature>.md` is created with `*Promoted from:*`, `*Promotion Class:* lightweight | broad`, and `*Closure Tier Baseline:* tier-1 | tier-2`. The promoted feature inherits the source's phase slot in `/relay-order`.
+- **Superseded issue** — original narrow issue, archived with `> **ARCHIVED - SUPERSEDED**` banner pointing forward to the promoted feature. Receives a `> Closure status: closed YYYY-MM-DD via <feature>.md` back-update when the feature resolves.
+
+**Closure tiers** scale verification rigor with promotion class. Tier 1 covers lightweight promotions; Tier 2 adds subsystem-wide checks for broad promotions. A heuristic waives Tier 2 → Tier 1 when the work is documentation-only (≤ 3 files, prose-only findings, no subsystem invariant), recorded as `*Closure Tier Applied:*` in the feature's front-matter.
+
+For details, see `.relay/relay-readme.md` (the per-project documentation that ships with `/relay-setup`).
 
 ---
 

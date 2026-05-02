@@ -27,7 +27,7 @@ Based on the analysis, create a detailed implementation plan.
    | `*Promoted from:*` present AND `*Promotion Class:* broad` | Plan MUST begin with a `### Design Deepening` section BEFORE the implementation plan, then emit `### Promoted Feature Coverage` AFTER the implementation steps. On Claude Code, prefer `/relay-superplan`; this skill is the fallback path. See step 7 below. |
    | `*Promoted from:*` absent | Proceed to the Scope Decision check below. |
 
-   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal for the planner contract. Phase 12-4 will layer Tier 2 → Tier 1 waiver logic in /relay-verify and /relay-resolve via a `*Closure Tier Applied:*` annotation; that waiver does NOT affect /relay-plan's choice of section template here. (lightweight ↔ tier-1, broad ↔ tier-2 remains an invariant at promotion time; only the FINAL closure-tier check is waivable downstream.)
+   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal for the planner contract. Phase 12-4 layered Tier 2 → Tier 1 waiver logic in /relay-verify Step 1 and /relay-resolve Step 0/4e via a `*Closure Tier Applied:*` annotation; that waiver does NOT affect /relay-plan's choice of section template here. (lightweight ↔ tier-1, broad ↔ tier-2 remains an invariant at promotion time; only the FINAL closure-tier check is waivable downstream.)
 
    Scope Decision check: in the same most-recent ## Analysis section,
    look for a `### Scope Decision` subsection. If present, read its
@@ -160,7 +160,7 @@ Requirements for the plan:
 
    - Every Strong/Medium finding from the source issue's `### Related Work` `#### Findings` block must appear here with at least one Plan Step mapping.
    - Each row must cite the source issue's file:line or symbol so /relay-verify can verify the diff covers it.
-   - **12-4 layering boundary**: this section reads `*Closure Tier Baseline:*` as the BASELINE only. If `*Closure Tier Applied:*` is present in the target's front-matter (set by Phase 12-4's waiver logic), prefer the applied tier; otherwise use the baseline. 12-3's planner does NOT compute the applied tier.
+   - **12-4 layering boundary**: this section reads `*Closure Tier Baseline:*` as the BASELINE only. If `*Closure Tier Applied:*` is present in the target's front-matter (set by Phase 12-4's waiver evaluator at /relay-verify Step 1), prefer the applied tier; otherwise use the baseline. /relay-plan does NOT compute the applied tier.
    - If a finding cannot be cleanly covered (e.g., out of scope for the lightweight promotion), STOP and tell the user: "This finding requires broader work than `*Promotion Class:* lightweight` permits. Re-run **/relay-analyze** to re-classify the promotion as broad, or file the finding as a follow-up via /relay-new-issue."
 
    ### Design Deepening

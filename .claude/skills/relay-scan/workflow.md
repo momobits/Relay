@@ -20,6 +20,13 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    - PARTIAL: some aspects addressed, others remain
    - OUTSTANDING: not yet addressed in code
    - Include a brief explanation of what evidence you found
+
+   **Lifecycle annotations** (Phase 12-4): in addition to status, classify each item by its scope-formation lifecycle state. These annotations are read in Step 6's status writing:
+   - **Grouped run leader**: target's most-recent `### Scope Decision` has `*Mode:* grouped run`. Read the `#### Grouped Entries` table to enumerate sibling entries and per-entry closure obligations.
+   - **Grouped existing-item sibling**: target file contains a `> Grouped into [<leader>] run on YYYY-MM-DD` annotation in its body (above any horizontal rule, below the front-matter and Status line — the placement is fixed by /relay-analyze step 9 sub-step 3 grouped-run write rule). **Leader-active check**: resolve `[<leader>].md` against `.relay/issues/` and `.relay/features/`. If the leader is ACTIVE, treat the sibling as suppressed-from-standalone (it is rendered only under its run leader in Step 6). If the leader is ARCHIVED (resolves to `.relay/archive/issues/` or `.relay/archive/features/`) or MISSING (no resolution), DE-SUPPRESS — render the sibling as a standalone active row with the annotation `(originally grouped under [<leader>] (archived); now standalone per non-closed disposition)`. This handles the case where the leader resolved with non-closed-disposition siblings remaining active per /relay-resolve step 4 grouped-sibling archival branch (only `closed`-disposition siblings move to archive; `re-opened`/`superseded`/`follow-up filed` siblings stay active).
+   - **Promoted feature**: feature file's front-matter contains `*Promoted from:*`. Read also `*Promotion Class:* lightweight | broad`, `*Closure Tier Baseline:* tier-1 | tier-2`, and (if /relay-verify has run) `*Closure Tier Applied:* tier-1 | tier-2`. The classification is rendered in Step 6's status line.
+   - **Superseded issue**: archived issue file at `.relay/archive/issues/<source>.md` whose top banner matches `> **ARCHIVED - SUPERSEDED**` (ASCII hyphen with surrounding spaces — the canonical form locked by Phase 12-3). Read the supersession header's `[<feature_name>.md](../features/<feature_name>.md)` link and the `> **Closure status:**` line.
+   - **Unfiled candidates** are not items in their own right — they exist only as rows within a grouped run leader's `#### Grouped Entries` table or within a promoted feature's source-issue Related Work findings. They have no standalone files and never appear as standalone status rows.
 5. Cross-reference with the full docs landscape:
    - Check .relay/implemented/ for matching implementation docs
    - Check .relay/archive/issues/ and .relay/archive/features/ for items that
@@ -27,6 +34,28 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    - If a previously archived item has regressed, flag it prominently
 6. Write .relay/relay-status.md with appropriate columns for each section.
    Update the `*Last generated:*` date header to today's date (YYYY-MM-DD).
+
+   **Lifecycle Integrity Warnings block (Phase 12-4)**: place at the top of `relay-status.md` immediately after the metadata header and BEFORE `## Active Issues` (visibility matters because broken supersession links are silent corruption). Compute warnings from Step 4's lifecycle annotations:
+
+   - **Broken supersession links**: for every `*Promoted from: [<source>.md](../archive/issues/<source>.md)*` header detected in `.relay/features/`, verify `.relay/archive/issues/<source>.md` exists. Missing target → warning: *"Promoted feature `<feature>.md` references missing source `archive/issues/<source>.md`. Manual repair required: locate the source issue or re-run /relay-analyze promote."*
+   - **Source not yet archived (interrupted promotion)**: for every `*Promoted from: [<source>.md](../archive/issues/<source>.md)*` header detected in `.relay/features/`, also check whether `.relay/issues/<source>.md` exists. If yes (source is still active despite the promoted feature claiming it's archived) → warning: *"Promoted feature `<feature>.md` references `archive/issues/<source>.md` but source is still at `issues/<source>.md` — interrupted promotion remnant. Manual repair: complete the archival (move the source to archive with the supersession banner), or rollback the promotion (delete the feature file). See /relay-analyze step 9 sub-flow Step B for the archival procedure."* This catches hand-edited and pre-12-3 partial-promotion remnants that the transactional 3-step write at relay-analyze:432-447 prevents in normal operation.
+   - **Broken back-supersession links**: for every `> **ARCHIVED - SUPERSEDED**` banner in `.relay/archive/issues/`, verify the cited `[<feature>.md](../features/<feature>.md)` link resolves to a file in `.relay/features/` OR `.relay/archive/features/`. Missing target → warning: *"Superseded issue `archive/issues/<source>.md` references missing feature `<feature>.md`. Manual repair required."*
+   - **Missing grouped siblings**: for every grouped-run leader detected in Step 4, verify each `#### Grouped Entries` row with `Kind: existing item` resolves to a file in `.relay/issues/`, `.relay/features/`, `.relay/archive/issues/`, or `.relay/archive/features/`. Missing target → warning: *"Grouped run leader `<leader>.md` references missing sibling `<entry>.md`. Manual repair required: confirm sibling identifier or remove the entry from `#### Grouped Entries`."*
+   - **Lean: warn and continue**: lifecycle integrity warnings do NOT block status generation; the rest of `relay-status.md` is written normally with the warnings block at the top.
+
+   If no warnings, omit the block entirely (do not emit an empty `## Lifecycle Integrity Warnings` heading).
+
+   **Active Issues / Active Features rendering (Phase 12-4 extensions)**:
+   - **Grouped run leader**: render as a multi-line block. The leader's row contains the standard target name, file link, and status, plus the suffix `(grouped run leader, <N> entries)`. Underneath the leader row, list each grouped entry as a sub-bullet:
+     ```markdown
+     - **<leader-name>.md** — OUTSTANDING, *(grouped run leader, 3 entries)*
+       - <sibling-name-1>.md — existing item, closure: full
+       - unfiled: module.py::symbol — unfiled candidate, closure: partial - only the X branch
+       - <sibling-name-2>.md — existing item, closure: partial - only the Y branch
+     ```
+   - **Grouped existing-item siblings — conditional suppression**: if the sibling's leader (per Step 4 leader-active check) is ACTIVE, exclude the sibling from standalone Active Issues / Active Features rows — render only under the run leader. If the leader is ARCHIVED or MISSING, DE-SUPPRESS — render the sibling as a standalone active row with the annotation `(originally grouped under [<leader>] (archived); now standalone per non-closed disposition)`. The de-suppressed row counts toward standalone OUTSTANDING totals.
+   - **Promoted feature**: append `(promoted from <source-issue-name>, class: lightweight|broad)` to the feature's status line. If `*Closure Tier Applied:*` differs from `*Closure Tier Baseline:*`, also append `, applied tier: <applied>` so waivers and overrides are visible.
+   - **Outstanding totals**: standalone counts EXCLUDE grouped existing-item siblings whose leader is active (they're under their run leader). Counts INCLUDE grouped run leaders (each leader counts as 1 active item regardless of N entries). Counts INCLUDE promoted features as standalone active features. Counts INCLUDE de-suppressed grouped siblings (whose leader is archived).
 
    Exercise pipeline state (conditional):
 
@@ -161,6 +190,8 @@ Scan the project documentation and codebase to produce an updated .relay/relay-s
    - Has ## Adversarial Review with verdict DEFERRED → stage: deferred (moved to target phase in relay-ordering.md — skip)
    - If multiple ## Adversarial Review sections exist, use the verdict
      from the LAST one to determine stage
+   - **Promoted-feature waiver state** (Phase 12-4): if the item is a promoted feature (front-matter has `*Promoted from:*`) AND its `*Closure Tier Applied:*` is absent at /relay-verify completion, annotate the Stage column suffix with `(awaiting waiver evaluation — re-run /relay-verify to populate `*Closure Tier Applied:*`)`. This catches the rare hand-edited case Step 1 of /relay-verify treats as corruption.
+   - **Grouped sibling stage suppression** (Phase 12-4): if the item is detected as a grouped existing-item sibling in Step 4 AND its leader is ACTIVE, do NOT add a separate row to the In-Progress Work table. The run leader's row covers the sibling's stage. (If the leader is ARCHIVED or MISSING per the leader-active check, the sibling is de-suppressed and DOES appear as a separate row with the de-suppression annotation.)
    Write these under a "## In-Progress Work" section in relay-status.md:
 
    | Item | File | Stage Reached | Next Step |

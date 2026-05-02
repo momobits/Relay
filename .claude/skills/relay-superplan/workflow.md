@@ -45,7 +45,7 @@ Do not proceed with the 5-agent dispatch.
    | `*Promoted from:*` present AND `*Promotion Class:* broad` | All 5 agents emit a `### Design Deepening` section BEFORE the implementation plan AND a `### Promoted Feature Coverage` section AFTER. /relay-superplan is the PREFERRED path for broad promotions on Claude Code. See Step 3 and Step 4. |
    | `*Promoted from:*` absent | Proceed to the Scope Decision check below. |
 
-   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal. Phase 12-4's Tier 2 → Tier 1 waiver logic via `*Closure Tier Applied:*` is layered downstream in /relay-verify and /relay-resolve, not here.
+   **12-4 layering boundary**: this detection reads `*Promotion Class:*` as the BINDING signal. Phase 12-4's Tier 2 → Tier 1 waiver logic via `*Closure Tier Applied:*` is layered downstream in /relay-verify Step 1 and /relay-resolve Step 0/4e, not here.
 
    Scope Decision check: in the same most-recent `## Analysis` section,
    look for a `### Scope Decision` subsection. If present, read its

@@ -89,6 +89,16 @@ After routing, also mention the current project state if relevant (e.g., "You al
 
 **Ordering exists with outstanding phases**:
 Check if any items are in-progress (have pipeline sections appended):
+
+**Scope-formation lifecycle detection (Phase 12-4)** — check FIRST, before pipeline-stage detection below. These branches recognize 12-2 / 12-3 lifecycle states; if any matches, the user is routed to the corresponding lifecycle action rather than the per-item pipeline stage:
+- Item file's most-recent `### Scope Decision` has `*Mode:* grouped run` AND no `## Implementation Plan` yet → "Grouped run leader detected. Run **/relay-plan** or **/relay-superplan** on [item] — the planner will emit a `### Grouped Run Coverage` section as required by the Scope Decision's Planner Contract."
+- Item file contains a `> Grouped into [<leader>] run on YYYY-MM-DD` annotation → "This item is a grouped existing-item sibling of `[<leader>]`. The grouped run is tracked under its leader. Run **/relay-help** on the leader, or run **/relay-plan**/**/relay-review**/**/relay-verify**/**/relay-resolve** on the leader to advance the run. Per-entry closure for this sibling is recorded in the leader's `### Per-Entry Closure` block."
+- Item file's front-matter contains `*Promoted from:*` AND `*Promotion Class:* lightweight` AND no `## Implementation Plan` yet → "Promoted feature detected (lightweight). Run **/relay-plan** or **/relay-superplan** on [item] — the planner will emit a `### Promoted Feature Coverage` section."
+- Item file's front-matter contains `*Promoted from:*` AND `*Promotion Class:* broad` AND no `## Implementation Plan` yet → "Promoted feature detected (broad). Run **/relay-superplan** on [item] (preferred on Claude Code) — the planner will emit `### Design Deepening` BEFORE the implementation plan and `### Promoted Feature Coverage` after. **/relay-plan** with `### Design Deepening` is the cross-platform fallback."
+- Item file's front-matter contains `*Promoted from:*` AND a `## Verification Report` exists → annotate the existing pipeline-stage recommendation with the applied tier: "Closure tier applied: <tier> (waiver fired: <yes|no>; baseline: <baseline>)." Read `*Closure Tier Applied:*` from front-matter; fall back to baseline if absent.
+
+If no scope-formation branch matched, fall through to the existing pipeline-stage branches below:
+
 - If in-progress items found, recommend resuming from their current stage.
   Check sections in the item file to determine stage (check in this order —
   later conditions take precedence over earlier ones):
