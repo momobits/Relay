@@ -46,6 +46,24 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
+### 3.4.0 — Analyze-time scope formation (2026-05-02)
+- **Phase 12** introduces analyze-time scope formation: 4 features that extend `/relay-analyze` beyond single-item validation into structured related-work discovery, scope-decision binding, issue-to-feature promotion, and workflow-wide lifecycle integration.
+- **12-1 Related Work discovery**: `/relay-analyze` step 4 runs a structured 6-dimension search (live codepath audit / backlog codepath / subsystem / archived siblings / implementation history / contract drift) with Strong / Medium / Weak evidence rubric, Serena-first symbol-level tooling (grep fallback), search-bounds reporting, and contract-drift sub-procedure. Surfaces sibling bug candidates as `unfiled candidate` findings.
+- **12-2 Scope Decision flow**: `/relay-analyze` step 9 binds 4 modes — `keep narrow` / `grouped run` / `linked companion` / `promote`. Grouped runs handle multiple siblings as one work unit with per-entry closure obligations; `/relay-plan` and `/relay-superplan` emit `### Grouped Run Coverage`; `/relay-review` enforces sibling-survival; `/relay-verify` enforces grouped-coverage diff checks; `/relay-resolve` archives siblings together.
+- **12-3 Promotion sub-flow**: when analysis finds broader work, `/relay-analyze` promotes the source issue into a new feature with canonical metadata (`*Promoted from:*`, `*Promotion Class:* lightweight | broad`, `*Closure Tier Baseline:* tier-1 | tier-2`), archives the source with `**ARCHIVED - SUPERSEDED**` banner, routes downstream skills to the appropriate planner template (lightweight emits `### Promoted Feature Coverage`; broad emits `### Design Deepening` before the implementation plan plus coverage after). Bidirectional closure back-updates the superseded source's archive entry.
+- **12-4 Workflow integration**: `/relay-scan` adds Lifecycle Integrity Warnings, grouped-run multi-line rendering, promoted-feature annotations, grouped-sibling suppression with leader-active check. `/relay-order` auto-replaces superseded issues with promoted features at inherited phase slots, renders grouped runs as compound entries, prunes stale archived rows. `/relay-verify` gains a Tier 2 → Tier 1 waiver evaluator (4 criteria: docs-only, ≤3 files, prose-only findings, no subsystem invariant) that writes `*Closure Tier Applied:*`. `/relay-resolve` preserves waiver / override decisions. `/relay-help` recognizes scope-formation lifecycle states first.
+- Backwards-compatible: items without `### Scope Decision` continue through the legacy single-item-run path preserved at every downstream skill.
+- README.md and `.relay/relay-readme.md` Lifecycle of an Item gain a Scope-Formation Lifecycle States (Phase 12) sub-section.
+- Skill count unchanged (20).
+
+### 3.2.4 — Exercise auto-sweep orchestrator (2026-04-27)
+- New skill `/relay-exercise-auto`: walks an entire active exercise session end-to-end without per-item prompting. Resolves the active session, builds a mode-aware work queue, then spawns one isolated agent per work item that runs `/relay-exercise-run` followed by `/relay-exercise-file` with auto-decisions. Agents return structured summaries; the main session never absorbs scenario stdout, finding bodies, or filer dialogs.
+- Single trust gate fires at orchestrator start; spawned agents inherit auto-confirm. Destructive-command detection inside an agent ABORTS that agent and surfaces to the orchestrator (does not auto-confirm).
+- Goal-mode gap policy chosen once at orchestrator start (`auto-adapt` / `auto-file` / `auto-skip`) and applied uniformly to every gap step.
+- Sequential by default across items; default mode opts into chain-level parallelism via `--parallel-chains`.
+- Pause-and-prompt triggers (orchestrator-level): prerequisite failure, destructive abort, agent-reported errors, external `_control.md` mtime modification.
+- `/relay-help` and `/relay-setup` updated to surface the new skill; `tools/cli.js` ships it. Skill count: **19 → 20**.
+
 ### 3.2.3 — Exercise filer symbol verification + installer safety + migrate removal
 - `/relay-exercise-file` Phase 3d gains a symbol-verification pre-step (file and seed branches only): extracts candidate symbols from finding Title/Observed/Reproduction/Suggested direction, greps the project source, prompts `use <closest> / edit manually / file as-is` on misses. Closest match via Levenshtein over the project identifier set, top-1 within distance ≤ 3, with source-location preview (`file:line` + one-line context) so the user can spot semantic flips before accepting. Corrections rewrite the new issue/brainstorm file only; the exercise finding is preserved.
 - New optional `## Drift Warnings` section appended to issue and brainstorm files when the user picks `file as-is` for any unverified symbol (omitted entirely when zero unverified symbols).

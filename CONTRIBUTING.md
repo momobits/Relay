@@ -103,7 +103,7 @@ refactor: simplify relay-scan in-progress detection
 
    **Local docs (1 surface):**
    - `.relay/relay-config.md:175, 185, 186, 212` — update Test Commands
-     literal assertions (`(19)` / `expect 19` / `(must equal 19)`).
+     literal assertions (`(20)` / `expect 20` / `(must equal 20)`).
      Gitignored but still required for accurate local smoke tests.
 
    **Also update (not count-based, but required wiring):**
