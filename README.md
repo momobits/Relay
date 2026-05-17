@@ -197,7 +197,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **/relay-verify** | Post-implementation check: diff vs plan, completeness, correctness, regression tests. |
 | **/relay-notebook** | Creates a Jupyter verification notebook that exercises the real project API end-to-end, runs every cell, iterates until all pass. |
 | **/relay-resolve** | Archives resolved items, creates implementation docs in `.relay/implemented/`, updates brainstorm files and ordering. |
-| **/relay-auto** | Auto-walk the full code pipeline across items from `relay-ordering.md`. Spawns one isolated agent per item that runs analyze → plan/superplan → review → implement → verify → resolve end-to-end and returns a structured summary. Resumable across context compaction. Single-item mode, sweep mode (`--sweep N`), and resume mode (`--resume`). |
+| **/relay-auto** | Auto-walk the full code pipeline across items from `relay-ordering.md`. Spawns one isolated agent per item that runs analyze → plan/superplan → review → implement → verify → resolve end-to-end and returns a structured summary. Resumable across context compaction. Single-item mode, sweep mode (`--sweep N`), and resume mode (`--resume`). Optional hooks (SessionStart / PreCompact / SubagentStop / Stop) installable via `npx relay-workflow install-hooks` add cold-start session awareness and snapshot recovery for unattended sweeps; coexist with other hook frameworks (e.g., Control) via idempotent settings.json merge. |
 
 ### Navigation
 
