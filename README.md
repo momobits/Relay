@@ -34,7 +34,7 @@ The bigger the project, the worse it gets. You repeat yourself, re-explain archi
 
 Relay creates a **living project layer** — a structured `.relay/` directory that serves as shared memory between you and your AI tools:
 
-- **20 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve
+- **21 workflow skills** cover the full lifecycle: discover, brainstorm, design, exercise, analyze, plan, review, implement, verify, resolve, auto-orchestrate
 - **Every skill reads and writes** to the same documentation, building a compounding knowledge base that grows smarter with every session
 - **Cross-platform by design** — start analysis in Claude, plan in Gemini, review in Codex. The `.relay/` files are the shared contract; any AI (or human) picks up where the last left off
 - **Human-directed, AI-scaled** — you make the creative decisions; AI handles the depth of analysis, breadth of review, and rigor of verification
@@ -140,6 +140,7 @@ Feature idea          →  /relay-brainstorm → /relay-design → /relay-scan �
 Exercise session      →  /relay-exercise → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Exercise auto-sweep   →  /relay-exercise → /relay-exercise-auto → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
 Goal-driven exercise  →  /relay-exercise "<your goal>" → /relay-exercise-run → /relay-exercise-file → /relay-scan → /relay-order → /relay-analyze → ... → /relay-resolve
+Code auto-pipeline    →  /relay-scan → /relay-order → /relay-auto  (drives the full code pipeline across items, one isolated agent per item)
 ```
 
 All paths converge on the same **code pipeline** for implementation, ensuring every change gets the same rigor regardless of how it was discovered.
@@ -196,6 +197,7 @@ All paths converge on the same **code pipeline** for implementation, ensuring ev
 | **/relay-verify** | Post-implementation check: diff vs plan, completeness, correctness, regression tests. |
 | **/relay-notebook** | Creates a Jupyter verification notebook that exercises the real project API end-to-end, runs every cell, iterates until all pass. |
 | **/relay-resolve** | Archives resolved items, creates implementation docs in `.relay/implemented/`, updates brainstorm files and ordering. |
+| **/relay-auto** | Auto-walk the full code pipeline across items from `relay-ordering.md`. Spawns one isolated agent per item that runs analyze → plan/superplan → review → implement → verify → resolve end-to-end and returns a structured summary. Resumable across context compaction. Single-item mode, sweep mode (`--sweep N`), and resume mode (`--resume`). |
 
 ### Navigation
 
@@ -415,6 +417,7 @@ your-project/
 │       ├── relay-verify/         # Verify implementation
 │       ├── relay-notebook/       # Verification notebook
 │       ├── relay-resolve/        # Close out and archive
+│       ├── relay-auto/           # Auto-walk the full code pipeline across items
 │       └── relay-help/           # Navigation guidance
 │
 ├── .agents/

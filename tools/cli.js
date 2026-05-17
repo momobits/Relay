@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "3.4.0";
+const VERSION = "3.5.0";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const AGENTS_SKILLS_DIR = ".agents/skills";
 const MARKER_START = "<!-- relay-workflow:start -->";
@@ -11,6 +11,7 @@ const MARKER_END = "<!-- relay-workflow:end -->";
 
 const RELAY_SKILLS = [
   "relay-analyze",
+  "relay-auto",
   "relay-brainstorm",
   "relay-cleanup",
   "relay-design",
@@ -75,6 +76,7 @@ and what's next. Skills are in \`.agents/skills/relay-*/\`.
 | /relay-verify | Verify implementation |
 | /relay-notebook | Verification notebook |
 | /relay-resolve | Close out and archive |
+| /relay-auto | Auto-walk the full code pipeline across items |
 | /relay-help | Navigate the workflow |
 
 Start with \`/relay-setup\`, then \`/relay-help\`.
@@ -84,6 +86,8 @@ Workflow: \`/relay-analyze\` → \`/relay-plan\` or \`/relay-superplan\` → \`/
 Exercise flow: \`/relay-exercise\` → \`/relay-exercise-run\` → \`/relay-exercise-file\` → (filed items flow into normal code pipeline)
 
 Auto-sweep: \`/relay-exercise-auto\` runs the run+file pair end-to-end across the active session, with one isolated agent per work item.
+
+Code auto-pipeline: \`/relay-auto\` drives items from \`relay-ordering.md\` through the full code pipeline (analyze → plan/superplan → review → implement → verify → resolve) — one isolated agent per item, resumable across context compaction.
 
 Goal mode: \`/relay-exercise "<your goal>"\` builds a top-down journey of required capabilities and discovers missing ones as gaps.
 ${MARKER_END}`;
@@ -302,6 +306,205 @@ function uninstall(targetDir) {
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────
+// /relay-auto hooks (optional, opt-in)
+//
+// 4 hooks that complement /relay-auto by surfacing active sessions on
+// cold start (SessionStart), snapshotting state across compaction
+// (PreCompact), and logging per-turn/per-subagent activity (Stop,
+// SubagentStop). All implemented in a single Node runtime
+// (relay-hook-runtime.js); the 8 shell wrappers are trivial.
+//
+// Hooks are opt-in via `npx relay-workflow install-hooks`. They are
+// independent of Control's hooks — Claude Code's settings.json accepts
+// multiple handlers per event, so both fire when both are installed.
+// ────────────────────────────────────────────────────────────────────────
+
+const HOOKS_SRC_DIR = ".claude/hooks";
+const HOOK_RUNTIME = "relay-hook-runtime.js";
+const RELAY_HOOK_FILES = [
+  HOOK_RUNTIME,
+  "relay-session-start.sh", "relay-session-start.ps1",
+  "relay-pre-compact.sh",   "relay-pre-compact.ps1",
+  "relay-subagent-stop.sh", "relay-subagent-stop.ps1",
+  "relay-stop.sh",          "relay-stop.ps1",
+];
+
+// Maps Claude Code hook event name → wrapper script basename (no extension).
+const HOOK_EVENT_TO_SCRIPT = {
+  SessionStart: "relay-session-start",
+  PreCompact:   "relay-pre-compact",
+  SubagentStop: "relay-subagent-stop",
+  Stop:         "relay-stop",
+};
+
+function detectHookRuntime() {
+  // Detect bash availability (same heuristic Control uses). On Windows
+  // without bash, fall back to PowerShell.
+  try {
+    const { execSync } = require("child_process");
+    execSync("bash -c 'exit 0'", { stdio: "ignore", timeout: 2000 });
+    return "bash";
+  } catch {
+    return "powershell";
+  }
+}
+
+function buildHookCommand(scriptBase, runtime) {
+  if (runtime === "bash") {
+    return `bash -c 'cd "$CLAUDE_PROJECT_DIR" && exec bash .claude/hooks/${scriptBase}.sh'`;
+  }
+  // PowerShell — cwd-anchor via $env:CLAUDE_PROJECT_DIR
+  return `powershell -NoProfile -Command "Set-Location -LiteralPath $env:CLAUDE_PROJECT_DIR; & .claude\\hooks\\${scriptBase}.ps1"`;
+}
+
+function readSettingsJSON(settingsPath) {
+  if (!fs.existsSync(settingsPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(settingsPath, "utf8")) || {};
+  } catch (err) {
+    console.error(`\n  Error: ${settingsPath} is not valid JSON (${err.message}).`);
+    console.error(`  Refusing to merge — fix the file manually, then re-run install-hooks.\n`);
+    process.exit(1);
+  }
+}
+
+function writeSettingsJSON(settingsPath, data) {
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  // Atomic write: temp file + rename
+  const tmp = settingsPath + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf8");
+  fs.renameSync(tmp, settingsPath);
+}
+
+function mergeRelayHookIntoSettings(settings, eventName, command) {
+  // Claude Code settings shape:
+  //   { "hooks": { "<EventName>": [ { "matcher": "...", "hooks": [ { "type": "command", "command": "..." } ] } ] } }
+  // We append our entry idempotently (skip if our command string is already present).
+  settings.hooks ||= {};
+  settings.hooks[eventName] ||= [];
+
+  const alreadyPresent = settings.hooks[eventName].some((group) =>
+    Array.isArray(group.hooks) && group.hooks.some((h) => h && h.command === command)
+  );
+  if (alreadyPresent) return false;
+
+  settings.hooks[eventName].push({
+    matcher: "*",
+    hooks: [{ type: "command", command }],
+  });
+  return true;
+}
+
+function removeRelayHookFromSettings(settings, eventName, scriptBase) {
+  if (!settings.hooks || !Array.isArray(settings.hooks[eventName])) return false;
+
+  // Remove any hook entry whose command references our script basename (matches
+  // both bash and PowerShell variants, robust to path-style differences).
+  const before = settings.hooks[eventName].length;
+  settings.hooks[eventName] = settings.hooks[eventName]
+    .map((group) => {
+      if (!Array.isArray(group.hooks)) return group;
+      return {
+        ...group,
+        hooks: group.hooks.filter((h) => !(h && typeof h.command === "string" && h.command.includes(scriptBase))),
+      };
+    })
+    .filter((group) => Array.isArray(group.hooks) && group.hooks.length > 0);
+
+  if (settings.hooks[eventName].length === 0) {
+    delete settings.hooks[eventName];
+  }
+  if (Object.keys(settings.hooks).length === 0) {
+    delete settings.hooks;
+  }
+  return settings.hooks?.[eventName]?.length !== before;
+}
+
+function installHooks(targetDir) {
+  const hooksSrc = path.join(__dirname, "..", HOOKS_SRC_DIR);
+  const hooksDest = path.join(targetDir, HOOKS_SRC_DIR);
+  const settingsPath = path.join(targetDir, ".claude", "settings.json");
+
+  // Refuse self-install (same pattern as install()/uninstall() to prevent
+  // overwriting source-repo hooks when run from the dev tree).
+  if (path.resolve(hooksDest) === path.resolve(hooksSrc)) {
+    console.error(`\n  Error: install-hooks target resolves to the source hooks directory (${path.resolve(hooksSrc)}).\n  Refusing to install — this would overwrite the source. Use a different target directory.\n`);
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(hooksSrc)) {
+    console.error("\n  Error: Relay hooks not found in package. Reinstall with: npm install relay-workflow\n");
+    process.exit(1);
+  }
+
+  fs.mkdirSync(hooksDest, { recursive: true });
+
+  // Copy hook scripts + runtime
+  let copied = 0;
+  for (const file of RELAY_HOOK_FILES) {
+    const src = path.join(hooksSrc, file);
+    const dst = path.join(hooksDest, file);
+    if (!fs.existsSync(src)) {
+      console.warn(`  Warning: ${file} not found in package, skipping`);
+      continue;
+    }
+    fs.copyFileSync(src, dst);
+    copied++;
+  }
+
+  // Wire into settings.json
+  const runtime = detectHookRuntime();
+  const settings = readSettingsJSON(settingsPath);
+  let wired = 0;
+  for (const [eventName, scriptBase] of Object.entries(HOOK_EVENT_TO_SCRIPT)) {
+    const cmd = buildHookCommand(scriptBase, runtime);
+    if (mergeRelayHookIntoSettings(settings, eventName, cmd)) wired++;
+  }
+  writeSettingsJSON(settingsPath, settings);
+
+  console.log(`\n  Installed ${copied} hook file(s) into:`);
+  console.log(`    ${path.relative(process.cwd(), hooksDest)}/`);
+  console.log(`  Wired ${wired} hook event(s) into:`);
+  console.log(`    ${path.relative(process.cwd(), settingsPath)}  (runtime: ${runtime})`);
+  if (wired === 0) {
+    console.log(`  (all hooks were already wired — nothing to do)`);
+  }
+  console.log(`\n  Hooks fire automatically from now on. To remove, run:`);
+  console.log(`    npx relay-workflow uninstall-hooks\n`);
+}
+
+function uninstallHooks(targetDir) {
+  const hooksDest = path.join(targetDir, HOOKS_SRC_DIR);
+  const settingsPath = path.join(targetDir, ".claude", "settings.json");
+
+  // Unwire from settings.json
+  let unwired = 0;
+  if (fs.existsSync(settingsPath)) {
+    const settings = readSettingsJSON(settingsPath);
+    for (const [eventName, scriptBase] of Object.entries(HOOK_EVENT_TO_SCRIPT)) {
+      if (removeRelayHookFromSettings(settings, eventName, scriptBase)) unwired++;
+    }
+    writeSettingsJSON(settingsPath, settings);
+  }
+
+  // Remove hook scripts
+  let removed = 0;
+  if (fs.existsSync(hooksDest)) {
+    for (const file of RELAY_HOOK_FILES) {
+      const dst = path.join(hooksDest, file);
+      if (fs.existsSync(dst)) {
+        fs.unlinkSync(dst);
+        removed++;
+      }
+    }
+  }
+
+  console.log(`\n  Removed ${removed} hook file(s) from ${path.relative(process.cwd(), hooksDest)}/`);
+  console.log(`  Unwired ${unwired} hook event(s) from ${path.relative(process.cwd(), settingsPath)}`);
+  console.log(`  Note: .relay/.auto-session/ session state is preserved.\n`);
+}
+
 function showHelp() {
   console.log(`
   relay-workflow v${VERSION}
@@ -309,20 +512,30 @@ function showHelp() {
   Works with: Claude Code, OpenAI Codex CLI, Google Gemini CLI
 
   Usage:
-    npx relay-workflow install     Install Relay skills into current project
-    npx relay-workflow uninstall   Remove Relay skills (keeps .relay/ data)
-    npx relay-workflow version     Show version
-    npx relay-workflow help        Show this help
+    npx relay-workflow install            Install Relay skills into current project
+    npx relay-workflow uninstall          Remove Relay skills (keeps .relay/ data)
+    npx relay-workflow install-hooks      Install optional /relay-auto hooks (SessionStart, PreCompact, SubagentStop, Stop)
+    npx relay-workflow uninstall-hooks    Remove the /relay-auto hooks
+    npx relay-workflow version            Show version
+    npx relay-workflow help               Show this help
 
   What it does:
     Copies ${RELAY_SKILLS.length} skills into .claude/skills/relay-*/ and .agents/skills/relay-*/
     Updates AGENTS.md and GEMINI.md with skill references
     These skills give AI agents persistent memory across sessions.
 
+  /relay-auto hooks (opt-in):
+    SessionStart  — emit a marker on cold start if an auto-session is active
+    PreCompact    — snapshot state.json + latest per-item summary before compaction
+    SubagentStop  — append per-item agent activity to a JSONL audit log
+    Stop          — append per-turn marker to a JSONL audit log
+    Coexists with Control's hooks (Claude Code supports multiple handlers per event).
+
   After install:
     1. Open your AI coding CLI (Claude Code, Codex, or Gemini)
     2. Run /relay-setup to initialize
-    3. Run /relay-help for guidance
+    3. (Optional) Run \`npx relay-workflow install-hooks\` to enable /relay-auto hooks
+    4. Run /relay-help for guidance
   `);
 }
 
@@ -342,6 +555,16 @@ switch (command) {
   case "remove":
     console.log(`\n  relay-workflow v${VERSION} — uninstalling...`);
     uninstall(targetDir);
+    break;
+
+  case "install-hooks":
+    console.log(`\n  relay-workflow v${VERSION} — installing /relay-auto hooks...`);
+    installHooks(targetDir);
+    break;
+
+  case "uninstall-hooks":
+    console.log(`\n  relay-workflow v${VERSION} — uninstalling /relay-auto hooks...`);
+    uninstallHooks(targetDir);
     break;
 
   case "version":

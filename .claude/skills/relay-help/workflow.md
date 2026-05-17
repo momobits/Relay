@@ -48,6 +48,9 @@ The user described what they want. Classify their intent and route them:
 **d) They want to scan for problems** ("find issues", "what's broken", "audit"):
 → "Run **/relay-discover** to systematically scan the codebase for bugs, gaps, and issues."
 
+**d-auto) They want to automate the code pipeline** ("run it for me", "automate", "auto-pipeline", "do everything", "leave it running", "sweep the backlog"):
+→ "Run **/relay-auto** to drive items end-to-end through the full code pipeline (analyze → plan/superplan → review → implement → verify → resolve). Default mode picks the next item per priority rules and pauses after each. Use **/relay-auto --sweep N** to walk N items without pausing, or **/relay-auto --sweep all** for the whole backlog. The orchestrator spawns one isolated agent per item so the main session never absorbs analyze landscape scans, plan code blocks, or verify diffs. Resumable across context compaction via **/relay-auto --resume**."
+
 **e) They want to continue or resume work** ("what's next", "where was I", "continue"):
 → Skip to **Step 2** and proceed with state-based detection.
 
@@ -88,6 +91,12 @@ After routing, also mention the current project state if relevant (e.g., "You al
 → "Status is current but work isn't prioritized. Run **/relay-order** to create the work plan."
 
 **Ordering exists with outstanding phases**:
+
+**Auto-pipeline session detection** — if `.relay/.auto-session/<session>/state.json` exists for ANY session with `status: active | paused`:
+→ "Active auto-pipeline session detected: `<session>` (status: `<status>`, queue position `<i>/<N>`). Run **/relay-auto --resume** to continue, or **/relay-auto --list** to see all sessions."
+
+If the SessionStart hook is installed (`.claude/hooks/relay-session-start.sh|ps1`), this detection has already fired at cold start as a structured `[relay-auto:active]` block — re-read it from the most recent hook output if present, otherwise scan `.relay/.auto-session/` directly.
+
 Check if any items are in-progress (have pipeline sections appended):
 
 **Scope-formation lifecycle detection (Phase 12-4)** — check FIRST, before pipeline-stage detection below. These branches recognize 12-2 / 12-3 lifecycle states; if any matches, the user is routed to the corresponding lifecycle action rather than the per-item pipeline stage:
@@ -174,6 +183,7 @@ Priority when multiple exercise conditions apply: draft findings first (active w
 | **/relay-verify** | Verify implementation |
 | **/relay-notebook** | Create verification notebook |
 | **/relay-resolve** | Close out and archive completed work |
+| **/relay-auto** | Auto-walk the full code pipeline across items (one isolated agent per item) |
 | **/relay-help** | Navigation guidance — where you are now |
 
 ## Workflow Paths

@@ -46,6 +46,16 @@ Create this file to track the installed Relay version:
 
 ## Changelog
 
+### 3.5.0 — Code auto-pipeline orchestrator (2026-05-17)
+- New skill `/relay-auto`: drives Relay items end-to-end through the full code pipeline (`/relay-analyze` → `/relay-plan` or `/relay-superplan` → `/relay-review` → implement → `/relay-verify` → `/relay-resolve`) without per-skill prompting. Picks items from `relay-ordering.md` per priority rules (leaders that unblock dependents → triplet leaders → single features S → M → L), spawns one isolated `general-purpose` agent per item that runs the entire pipeline and returns a structured JSON summary. Main session never absorbs analyze landscape scans, plan code blocks, verify diffs, or resolve back-update walks — only one progress line per item.
+- Inner-agent dispatch mandated for context protection: `/relay-analyze` backlog scan → `Explore` subagent; `/relay-superplan` → 5 parallel `Plan` subagents in a single message; `/relay-verify` fix loop > 3 iterations → `general-purpose` subagent (final diff + verdict only).
+- Auto-decision policy applied inline (canonical skill transitions, Scope Decision unambiguous rubric matches, trivial APPROVED-WITH-CHANGES, Implementation Deviations, Verification Fixes, /relay-resolve commit). Orchestrator pauses on: REJECTED review, substantive APPROVED-WITH-CHANGES, scope-rubric ambiguity, implementation blocker, /relay-verify stuck after subagent escalation, external `relay-ordering.md` modification.
+- CLI: `/relay-auto` (single item, pause at end), `/relay-auto <id>` (specific item), `/relay-auto --sweep [N|all]` (sweep without per-item pause), `/relay-auto --resume [--session <name>]` (resume across compaction), `/relay-auto --list`.
+- Resumability: state persists to `.relay/.auto-session/<session>/state.json` after every item. After `/clear` or auto-compaction, `--resume` re-enters cleanly. No PreCompact/Stop hook required — Claude Code's built-in auto-compaction handles context bloat; disk-state resume is the answer.
+- Strictly sequential across items (the code pipeline mutates git, spec files, ordering.md; concurrent pipelines would race). Single trust gate fires once per invocation; spawned agents inherit auto-confirm.
+- `tools/cli.js`, `README.md`, `.relay/relay-readme.md`, and `/relay-help` updated to surface the new skill. Skill count: **20 → 21**.
+- **Optional `/relay-auto` hooks**: 4 hooks (`SessionStart`, `PreCompact`, `SubagentStop`, `Stop`) that complement the orchestrator. Single Node runtime + 8 trivial bash/PowerShell wrappers under `.claude/hooks/relay-*`. Opt-in via `npx relay-workflow install-hooks` (reverses with `uninstall-hooks`). Coexists with Control's hooks via idempotent merge of `settings.json`. Orchestrator works without them; they add cold-start awareness, mid-item-compact snapshot recovery, and an audit trail.
+
 ### 3.4.0 — Analyze-time scope formation (2026-05-02)
 - **Phase 12** introduces analyze-time scope formation: 4 features that extend `/relay-analyze` beyond single-item validation into structured related-work discovery, scope-decision binding, issue-to-feature promotion, and workflow-wide lifecycle integration.
 - **12-1 Related Work discovery**: `/relay-analyze` step 4 runs a structured 6-dimension search (live codepath audit / backlog codepath / subsystem / archived siblings / implementation history / contract drift) with Strong / Medium / Weak evidence rubric, Serena-first symbol-level tooling (grep fallback), search-bounds reporting, and contract-drift sub-procedure. Surfaces sibling bug candidates as `unfiled candidate` findings.
@@ -148,6 +158,7 @@ Skills are in your platform's skill directory:
 | /relay-verify | Verify implementation |
 | /relay-notebook | Verification notebook |
 | /relay-resolve | Close out and archive |
+| /relay-auto | Auto-walk the full code pipeline across items |
 | /relay-help | Navigation guidance |
 
 ### Status files
@@ -408,13 +419,25 @@ resolved phase). The skills /relay-review, /relay-verify, and
    f. Confirm the install succeeded (import all five packages).
    g. Ask if the user wants these added to the project's dev dependencies.
 
+## Phase 3 — Optional: install `/relay-auto` hooks
+
+`/relay-auto` (the code-pipeline auto-orchestrator) ships with 4 optional hooks that surface active sessions on cold start, snapshot state across context compaction, and write audit logs. The orchestrator works WITHOUT them — they add safety nets for unattended sweeps.
+
+Ask the user (one prompt, default skip):
+
+> *"`/relay-auto` ships with 4 optional hooks (SessionStart, PreCompact, SubagentStop, Stop) that complement unattended sweep mode. They coexist with other hook frameworks (Control, etc.) via idempotent settings.json merge. Install now? [y/N]"*
+
+If `y`: run `node tools/cli.js install-hooks` (in the dev repo) or `npx relay-workflow install-hooks` (in installed projects). Report the wired events + runtime.
+
+If `n` (default): tell the user *"Skipped. Install later with `npx relay-workflow install-hooks`."*
+
 ## Navigation
 When setup is complete, tell the user:
 - "Setup complete. Next steps:
    1. Run **/relay-discover** to scan the codebase for issues
    2. Run **/relay-scan** to generate relay-status.md
    3. Run **/relay-order** to prioritize the work
-   4. Run **/relay-analyze** to start working on the highest-priority item
+   4. Run **/relay-analyze** to start working on the highest-priority item, or **/relay-auto** to auto-walk the full pipeline
    Or run **/relay-brainstorm** to explore a new feature idea."
 
 ## Notes
