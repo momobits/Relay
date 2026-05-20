@@ -354,8 +354,10 @@ function buildHookCommand(scriptBase, runtime) {
   if (runtime === "bash") {
     return `bash -c 'cd "$CLAUDE_PROJECT_DIR" && exec bash .claude/hooks/${scriptBase}.sh'`;
   }
-  // PowerShell — cwd-anchor via $env:CLAUDE_PROJECT_DIR
-  return `powershell -NoProfile -Command "Set-Location -LiteralPath $env:CLAUDE_PROJECT_DIR; & .claude\\hooks\\${scriptBase}.ps1"`;
+  // PowerShell — cwd-anchor via $env:CLAUDE_PROJECT_DIR.
+  // Single-quote the inner -Command body so the outer shell (which may be bash
+  // on Windows when Git Bash is present) does not expand $env as a bash var.
+  return `powershell -NoProfile -Command 'Set-Location -LiteralPath $env:CLAUDE_PROJECT_DIR; & .claude\\hooks\\${scriptBase}.ps1'`;
 }
 
 function readSettingsJSON(settingsPath) {
